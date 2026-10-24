@@ -10,7 +10,9 @@ public class RealisticPlayerCamera : MonoBehaviour
     public AudioSource footstepAudioSource;
 
     [Header("Adım Sesleri & Seviyeleri")]
-    public AudioClip[] footstepSounds;
+    public AudioClip[] footstepSounds;          // Yürüme
+    public AudioClip[] sprintFootstepSounds;    // Koşma (boşsa yürüme sesi kullanılır)
+    public AudioClip[] crouchFootstepSounds;    // Eğilerek yürüme (boşsa yürüme sesi kullanılır)
     [Range(0f, 1f)] public float crouchVolume = 0.15f;
     [Range(0f, 1f)] public float walkVolume = 0.4f;
     [Range(0f, 1f)] public float sprintVolume = 0.7f;
@@ -88,6 +90,9 @@ public class RealisticPlayerCamera : MonoBehaviour
     public AudioClip[] vaultSounds;     // Boşsa zıplama sesi kullanılır
     [Range(0f, 1f)] public float vaultVolume = 0.6f;
 
+    [Header("Etkileşim Odağı")]
+    public float focusSpeed = 6f;       // E basılı tutulurken kameranın objeye dönme hızı
+
     private float lookPitch;
     private float yaw;
     private float bobTimer;
@@ -109,6 +114,8 @@ public class RealisticPlayerCamera : MonoBehaviour
     private float vaultPitchOffset;
     private float vaultRollOffset;
     private float vaultRollSign = 1f;
+    private bool hasFocus;
+    private Vector3 focusPoint;
 
     void Start()
     {
@@ -220,6 +227,18 @@ public class RealisticPlayerCamera : MonoBehaviour
         isStepSoundPlayed = true;
     }
 
+    // Etkileşim sırasında kamera bu noktaya yumuşakça döner, fare girişi kilitli kalır
+    public void SetFocus(Vector3 worldPoint)
+    {
+        hasFocus = true;
+        focusPoint = worldPoint;
+    }
+
+    public void ClearFocus()
+    {
+        hasFocus = false;
+    }
+
     private void UpdateSprings()
     {
         float dt = Time.deltaTime;
@@ -266,6 +285,20 @@ public class RealisticPlayerCamera : MonoBehaviour
         yaw += currentLookDelta.x;
         lookPitch -= currentLookDelta.y;
         lookPitch = Mathf.Clamp(lookPitch, -maxPitch, maxPitch);
+
+        if (hasFocus)
+        {
+            currentLookDelta = Vector2.zero;
+            Vector3 dir = focusPoint - transform.position;
+            if (dir.sqrMagnitude > 0.0001f)
+            {
+                float targetYaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
+                float targetPitch = -Mathf.Asin(Mathf.Clamp(dir.normalized.y, -1f, 1f)) * Mathf.Rad2Deg;
+                float t = Time.deltaTime * focusSpeed;
+                yaw = Mathf.LerpAngle(yaw, targetYaw, t);
+                lookPitch = Mathf.Lerp(lookPitch, Mathf.Clamp(targetPitch, -maxPitch, maxPitch), t);
+            }
+        }
 
         playerBody.rotation = Quaternion.Euler(0f, yaw, 0f);
     }
@@ -357,7 +390,12 @@ public class RealisticPlayerCamera : MonoBehaviour
     private void PlayDynamicFootstep(bool isCrouch, bool isSprint)
     {
         float targetVolume = isCrouch ? crouchVolume : (isSprint ? sprintVolume : walkVolume);
-        PlayClip(footstepSounds, targetVolume, 0.9f, 1.1f);
+        AudioClip[] clips = footstepSounds;
+        if (isCrouch && crouchFootstepSounds.Length > 0)
+            clips = crouchFootstepSounds;
+        else if (isSprint && sprintFootstepSounds.Length > 0)
+            clips = sprintFootstepSounds;
+        PlayClip(clips, targetVolume, 0.9f, 1.1f);
     }
 
     private void PlayClip(AudioClip[] clips, float volume, float minPitch, float maxPitch)
