@@ -3,11 +3,13 @@ using UnityEngine.InputSystem;
 
 public class PlayerInputManager : MonoBehaviour
 {
-    public Vector2 MoveInput { get; private set; }
-    public Vector2 LookInput { get; private set; }
+    // Kilitliyken (ör. E basılı tutulurken) hareket, bakış, koşu ve zıplama girişi yok sayılır
+    public bool InputLocked { get; set; }
+    public Vector2 MoveInput => InputLocked ? Vector2.zero : rawMove;
+    public Vector2 LookInput => InputLocked ? Vector2.zero : rawLook;
     public bool IsGamepad { get; private set; }
     public bool IsCrouching { get; private set; }
-    public bool IsSprinting { get; private set; }
+    public bool IsSprinting => !InputLocked && rawSprint;
     public bool JumpPressed { get; private set; }
     public bool JumpHeld { get; private set; }
 
@@ -16,6 +18,10 @@ public class PlayerInputManager : MonoBehaviour
     private InputAction crouchAction;
     private InputAction sprintAction;
     private InputAction jumpAction;
+
+    private Vector2 rawMove;
+    private Vector2 rawLook;
+    private bool rawSprint;
 
     void Awake()
     {
@@ -69,12 +75,12 @@ public class PlayerInputManager : MonoBehaviour
 
     void Update()
     {
-        MoveInput = moveAction.ReadValue<Vector2>();
-        LookInput = lookAction.ReadValue<Vector2>();
+        rawMove = moveAction.ReadValue<Vector2>();
+        rawLook = lookAction.ReadValue<Vector2>();
         IsCrouching = crouchAction.IsPressed();
-        IsSprinting = sprintAction.IsPressed();
+        rawSprint = sprintAction.IsPressed();
         // FixedUpdate okuyana kadar basışı tut, yüksek FPS'te kaybolmasın
-        if (jumpAction.WasPressedThisFrame())
+        if (jumpAction.WasPressedThisFrame() && !InputLocked)
             JumpPressed = true;
         JumpHeld = jumpAction.IsPressed();
 

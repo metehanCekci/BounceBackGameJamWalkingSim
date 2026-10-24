@@ -39,6 +39,9 @@ public class SubtitleManager : MonoBehaviour
 
     public bool IsPlaying => runner != null;
 
+    // Kuyruktaki her şey bittiğinde tetiklenir (sonraki objektif ya da sahne için)
+    public event System.Action OnQueueFinished;
+
     private readonly Queue<SubtitleLine> queue = new Queue<SubtitleLine>();
     private readonly Dictionary<BlipStyle, AudioClip> blipClips = new Dictionary<BlipStyle, AudioClip>();
     private Coroutine runner;
@@ -117,6 +120,7 @@ public class SubtitleManager : MonoBehaviour
 
         yield return Fade(0f);
         runner = null;
+        OnQueueFinished?.Invoke();
     }
 
     private IEnumerator PlayLine(SubtitleLine line)
