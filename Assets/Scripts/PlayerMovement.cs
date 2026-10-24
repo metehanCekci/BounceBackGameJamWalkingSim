@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -7,44 +8,83 @@ public class PlayerMovement : MonoBehaviour
     public PlayerInputManager inputManager;
 
     [Header("Hareket Hızları")]
-    public float walkSpeed = 3.0f; 
-    public float crouchSpeed = 1.5f; 
+    public float walkSpeed = 3.0f;
+    public float crouchSpeed = 1.5f;
     public float sprintSpeed = 4.8f; // Çocuk olduğu için abartı bir koşu değil, hafif depar
-    
+
     [Header("Zemin & Fizik")]
     public float maxSlopeAngle = 50f;
-    public float normalHeight = 1.5f; 
-    public float crouchHeight = 0.8f; 
+    public float normalHeight = 1.5f;
+    public float crouchHeight = 0.8f;
+
+    [Header("Zıplama")]
+    public float jumpHeight = 1.4f;
+    public float coyoteTime = 0.12f;
+    public float jumpBufferTime = 0.12f;
+
+    [Header("Havada Kontrol & İniş")]
+    [Range(0f, 1f)] public float airControl = 0.06f; // Havada yön değiştirmek zor olsun, momentum korunur
+    public float minLandingSpeed = 2f;   // Bunun altındaki düşüşler iniş efekti tetiklemez
+    public float hardLandingSpeed = 7f;  // Bu hızda inişte efektler en sert halini alır
+    public float landingSlowDuration = 0.35f;
+    [Range(0f, 1f)] public float landingSlowAmount = 0.5f; // Sert inişte anlık hız kaybı
 
     private Rigidbody rb;
+    private Collider col;
     private RaycastHit slopeHit;
     private bool isGrounded;
+    private float coyoteTimer;
+    private float jumpBufferTimer;
+    private float jumpGroundIgnoreTimer; // Zıpladıktan hemen sonra zemin kontrolü bizi yere yapıştırmasın
+    private float lowestAirVelocityY;
+    private float landingSlowTimer;
+    private float landingSlowStrength;
 
     // Kameranın okuyabilmesi için mevcut hedeflenen hızı dışa açıyoruz
-    public float CurrentExpectedSpeed { get; private set; } 
+    public float CurrentExpectedSpeed { get; private set; }
+    public bool IsGrounded => isGrounded;
+
+    // Kamera ve ses efektleri bunlara abone olur
+    public event Action OnJumped;
+    public event Action<float> OnLanded; // 0-1 arası iniş sertliği
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        col = GetComponent<Collider>();
+        if (inputManager == null)
+            inputManager = GetComponent<PlayerInputManager>();
+        if (inputManager == null)
+            inputManager = FindAnyObjectByType<PlayerInputManager>();
+
         rb.freezeRotation = true;
-        rb.useGravity = false; 
-        rb.interpolation = RigidbodyInterpolation.Interpolate; 
+        rb.useGravity = true;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
     }
 
     void FixedUpdate()
     {
         if (inputManager == null) return;
         CheckGround();
+        UpdateJumpTimers();
         MovePlayer();
     }
 
     private void CheckGround()
     {
-        float currentHeight = inputManager.IsCrouching ? crouchHeight : normalHeight;
-        Vector3 boxHalfExtents = new Vector3(0.3f, 0.05f, 0.3f);
-        float castDistance = (currentHeight * 0.5f) - boxHalfExtents.y + 0.15f;
+        bool wasGrounded = isGrounded;
 
-        if (Physics.BoxCast(transform.position, boxHalfExtents, Vector3.down, out slopeHit, transform.rotation, castDistance))
+        // Collider'ın gerçek (scale dahil) boyutunu kullan, inspector değerine güvenme
+        Bounds bounds = col.bounds;
+        Vector3 boxHalfExtents = new Vector3(bounds.extents.x * 0.9f, 0.05f, bounds.extents.z * 0.9f);
+        float castDistance = bounds.extents.y - boxHalfExtents.y + 0.15f;
+
+        if (jumpGroundIgnoreTimer > 0f)
+        {
+            jumpGroundIgnoreTimer -= Time.fixedDeltaTime;
+            isGrounded = false;
+        }
+        else if (Physics.BoxCast(bounds.center, boxHalfExtents, Vector3.down, out slopeHit, transform.rotation, castDistance))
         {
             float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
             isGrounded = angle < maxSlopeAngle;
@@ -53,6 +93,27 @@ public class PlayerMovement : MonoBehaviour
         {
             isGrounded = false;
         }
+
+        if (!isGrounded)
+        {
+            // Havadayken ulaşılan en yüksek düşüş hızını tut (temas anında Rigidbody hızı sıfırlanmış olabilir)
+            lowestAirVelocityY = Mathf.Min(lowestAirVelocityY, rb.linearVelocity.y);
+        }
+        else if (!wasGrounded)
+        {
+            HandleLanding(-lowestAirVelocityY);
+            lowestAirVelocityY = 0f;
+        }
+    }
+
+    private void HandleLanding(float impactSpeed)
+    {
+        if (impactSpeed < minLandingSpeed) return;
+
+        float severity = Mathf.InverseLerp(minLandingSpeed, hardLandingSpeed, impactSpeed);
+        landingSlowStrength = landingSlowAmount * severity;
+        landingSlowTimer = landingSlowDuration * Mathf.Lerp(0.4f, 1f, severity);
+        OnLanded?.Invoke(severity);
     }
 
     private Vector3 GetSlopeMoveDirection(Vector3 direction)
@@ -60,35 +121,93 @@ public class PlayerMovement : MonoBehaviour
         return Vector3.ProjectOnPlane(direction, slopeHit.normal).normalized;
     }
 
+    private void UpdateJumpTimers()
+    {
+        if (isGrounded)
+        {
+            coyoteTimer = coyoteTime;
+        }
+        else
+        {
+            coyoteTimer -= Time.fixedDeltaTime;
+        }
+
+        if (inputManager.JumpPressed)
+        {
+            jumpBufferTimer = jumpBufferTime;
+            inputManager.ConsumeJump();
+        }
+        else
+        {
+            jumpBufferTimer -= Time.fixedDeltaTime;
+        }
+
+        if (jumpBufferTimer > 0f && coyoteTimer > 0f)
+        {
+            float jumpVelocity = Mathf.Sqrt(2f * Mathf.Abs(Physics.gravity.y) * jumpHeight);
+            // Eğilirken zıplama daha zayıf
+            if (inputManager.IsCrouching)
+                jumpVelocity *= 0.75f;
+
+            Vector3 velocity = rb.linearVelocity;
+            velocity.y = jumpVelocity;
+            rb.linearVelocity = velocity;
+
+            coyoteTimer = 0f;
+            jumpBufferTimer = 0f;
+            jumpGroundIgnoreTimer = 0.15f;
+            isGrounded = false;
+            lowestAirVelocityY = 0f;
+            OnJumped?.Invoke();
+        }
+    }
+
     private void MovePlayer()
     {
         Vector3 moveDirection = transform.forward * inputManager.MoveInput.y + transform.right * inputManager.MoveInput.x;
-        
-        // Hız Durumu Karar Ağacı
-        if (inputManager.IsCrouching) 
+
+        if (inputManager.IsCrouching)
             CurrentExpectedSpeed = crouchSpeed;
-        else if (inputManager.IsSprinting && inputManager.MoveInput.y > 0) // Sadece ileri giderken koşulabilir
+        else if (inputManager.IsSprinting && inputManager.MoveInput.y > 0)
             CurrentExpectedSpeed = sprintSpeed;
-        else 
+        else
             CurrentExpectedSpeed = walkSpeed;
+
+        // Sert inişten sonra bacaklar toparlanana kadar yavaşla
+        if (landingSlowTimer > 0f)
+        {
+            landingSlowTimer -= Time.fixedDeltaTime;
+            float recovery = 1f - Mathf.Clamp01(landingSlowTimer / landingSlowDuration);
+            CurrentExpectedSpeed *= Mathf.Lerp(1f - landingSlowStrength, 1f, recovery);
+        }
+
+        Vector3 targetVelocity;
 
         if (isGrounded)
         {
             float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
-            if (angle > 0)
-            {
-                rb.linearVelocity = GetSlopeMoveDirection(moveDirection) * CurrentExpectedSpeed;
-            }
-            else
-            {
-                rb.linearVelocity = new Vector3(moveDirection.x * CurrentExpectedSpeed, 0f, moveDirection.z * CurrentExpectedSpeed);
-            }
+            Vector3 slopeMoveDirection = angle > 0 ? GetSlopeMoveDirection(moveDirection) : moveDirection;
 
-            if (inputManager.MoveInput.magnitude == 0) rb.linearVelocity = Vector3.zero;
+            targetVelocity = new Vector3(
+                slopeMoveDirection.x * CurrentExpectedSpeed,
+                Mathf.Max(0f, rb.linearVelocity.y),
+                slopeMoveDirection.z * CurrentExpectedSpeed);
+
+            if (inputManager.MoveInput.magnitude == 0)
+                targetVelocity = new Vector3(0f, targetVelocity.y, 0f);
+
+            rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, targetVelocity, 0.18f);
         }
         else
         {
-            rb.linearVelocity = new Vector3(moveDirection.x * CurrentExpectedSpeed, rb.linearVelocity.y - (9.81f * Time.fixedDeltaTime * 2.5f), moveDirection.z * CurrentExpectedSpeed);
+            // Havada momentum korunur, tuşsuzken yavaşlamaz; tuşla sadece hafifçe yön verilir
+            Vector3 horizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            if (moveDirection.sqrMagnitude > 0.01f)
+            {
+                Vector3 targetHorizontal = moveDirection * CurrentExpectedSpeed;
+                horizontal = Vector3.Lerp(horizontal, targetHorizontal, airControl);
+            }
+            rb.linearVelocity = new Vector3(horizontal.x, rb.linearVelocity.y, horizontal.z);
         }
     }
 }
