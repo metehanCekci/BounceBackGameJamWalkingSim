@@ -125,7 +125,6 @@ public class PlayerInteractor : MonoBehaviour
         progress = 0f;
         if (input != null) input.InputLocked = true;
         AudioManager.StartSearchSound();
-        t.BeginHold();
     }
 
     private void Release(bool cancelled)

@@ -2,22 +2,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-// Bir grup etkileşim objesini (çuvallar) aratır. İlk birkaç arama kesinlikle boş çıkar,
-// sonra eşya kalan çuvallardan birine rastgele yerleştirilir ve o çuval aranınca görev biter.
-// Activate() çağrılana kadar hiçbir obje aranamaz (örneğin cutscene bitince çağır).
+// Bir grup çuvalı aratır. İlk birkaç arama kesinlikle boş çıkar (çuvalın kendi metni oynar),
+// sonra eşya kalan çuvallardan birine rastgele konur; o çuval aranınca "bulundu" metni oynar ve görev biter.
+// Activate() çağrılana kadar hiçbir çuval aranamaz (örneğin cutscene bitince çağır).
 public class SearchSequence : MonoBehaviour
 {
-    [Header("Aranacak Objeler")]
+    [Header("Aranacak Çuvallar")]
     public Interactable[] sacks;
 
     [Tooltip("Bu kadar arama kesinlikle boş çıkar. Eşya bundan sonra kalanlardan birine konur.")]
     [Min(0)] public int guaranteedEmptyCount = 3;
 
-    [Header("Diyaloglar (boş bırakılırsa varsayılan satırlar kullanılır)")]
-    public SubtitleVoice emptyVoice;   // Varsayılan boş satırların sesi (ör. ChildSad)
-    public SubtitleVoice foundVoice;   // Varsayılan bulma satırlarının sesi (ör. ChildNormal)
-    public InteractOutcome[] emptyOutcomes;
-    public InteractOutcome finalOutcome;
+    [Header("Eşya Bulununca")]
+    [TextArea(2, 4)] public string foundText = "Wait... an MRE bar! It's still sealed.";
+    public SubtitleVoice foundVoice;
 
     [Header("Olaylar")]
     public UnityEvent onActivated;
@@ -26,24 +24,8 @@ public class SearchSequence : MonoBehaviour
     public bool IsActive { get; private set; }
     public bool IsCompleted { get; private set; }
 
-    private static readonly string[] DefaultEmptyLines =
-    {
-        "Nothing. Just old rags.",
-        "Empty... someone got here before me.",
-        "Only dust and broken glass.",
-        "It smells awful. Nothing to eat.",
-        "Just paper. I can't eat paper.",
-    };
-
-    private static readonly string[] DefaultFoundLines =
-    {
-        "Wait... an MRE bar! It's still sealed.",
-        "Finally. Something to eat.",
-    };
-
     private readonly HashSet<Interactable> searched = new HashSet<Interactable>();
     private Interactable itemSack;
-    private InteractOutcome lastEmpty;
 
     void Awake()
     {
@@ -52,33 +34,6 @@ public class SearchSequence : MonoBehaviour
         {
             if (sack != null)
                 sack.group = this;
-        }
-        ApplyDefaults();
-    }
-
-    private void ApplyDefaults()
-    {
-        if (emptyOutcomes == null || emptyOutcomes.Length == 0)
-        {
-            emptyOutcomes = new InteractOutcome[DefaultEmptyLines.Length];
-            for (int i = 0; i < DefaultEmptyLines.Length; i++)
-            {
-                emptyOutcomes[i] = new InteractOutcome
-                {
-                    label = "Boş",
-                    lines = new[] { new SubtitleLine(DefaultEmptyLines[i], emptyVoice) },
-                };
-            }
-        }
-
-        if (finalOutcome == null)
-            finalOutcome = new InteractOutcome();
-
-        if (finalOutcome.lines == null || finalOutcome.lines.Length == 0)
-        {
-            finalOutcome.lines = new SubtitleLine[DefaultFoundLines.Length];
-            for (int i = 0; i < DefaultFoundLines.Length; i++)
-                finalOutcome.lines[i] = new SubtitleLine(DefaultFoundLines[i], foundVoice);
         }
     }
 
@@ -96,11 +51,17 @@ public class SearchSequence : MonoBehaviour
         return IsActive && !IsCompleted && !searched.Contains(sack);
     }
 
-    // Bir çuval aranınca çağrılır, gösterilecek sonucu döndürür
-    public InteractOutcome Register(Interactable sack)
+    public void SayFound()
+    {
+        if (!string.IsNullOrWhiteSpace(foundText))
+            Subtitles.Say(foundText, foundVoice);
+    }
+
+    // Bir çuval aranınca çağrılır; eşya bu çuvaldaysa true döner
+    public bool Register(Interactable sack)
     {
         if (!CanSearch(sack))
-            return null;
+            return false;
         searched.Add(sack);
 
         // İlk aramalar kesin boş (aranacak başka çuval kaldıysa)
@@ -108,27 +69,16 @@ public class SearchSequence : MonoBehaviour
         {
             if (searched.Count == guaranteedEmptyCount)
                 itemSack = PickRandomUnsearched();
-            return PickEmpty();
+            return false;
         }
 
         if (itemSack != null && sack != itemSack)
-            return PickEmpty();
+            return false;
 
         IsCompleted = true;
         IsActive = false;
         onCompleted.Invoke();
-        return finalOutcome;
-    }
-
-    // Aynı boş satır arka arkaya gelmesin
-    private InteractOutcome PickEmpty()
-    {
-
-        InteractOutcome picked = InteractOutcome.Pick(emptyOutcomes);
-        for (int i = 0; i < 3 && emptyOutcomes.Length > 1 && picked == lastEmpty; i++)
-            picked = InteractOutcome.Pick(emptyOutcomes);
-        lastEmpty = picked;
-        return picked;
+        return true;
     }
 
     private bool HasUnsearched()
