@@ -7,12 +7,15 @@ public class PlayerInputManager : MonoBehaviour
     public Vector2 LookInput { get; private set; }
     public bool IsGamepad { get; private set; }
     public bool IsCrouching { get; private set; }
-    public bool IsSprinting { get; private set; } // YENİ: Sprint durumu
+    public bool IsSprinting { get; private set; }
+    public bool JumpPressed { get; private set; }
+    public bool JumpHeld { get; private set; }
 
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction crouchAction;
-    private InputAction sprintAction; // YENİ: Sprint aksiyonu
+    private InputAction sprintAction;
+    private InputAction jumpAction;
 
     void Awake()
     {
@@ -34,9 +37,11 @@ public class PlayerInputManager : MonoBehaviour
         crouchAction = new InputAction("Crouch", binding: "<Keyboard>/c");
         crouchAction.AddBinding("<Gamepad>/buttonEast"); 
 
-        // Sprint (Klavye: Sol Shift, Gamepad: Sol Analog Basma / L3)
         sprintAction = new InputAction("Sprint", binding: "<Keyboard>/leftShift");
-        sprintAction.AddBinding("<Gamepad>/leftStickPress"); 
+        sprintAction.AddBinding("<Gamepad>/leftStickPress");
+
+        jumpAction = new InputAction("Jump", binding: "<Keyboard>/space");
+        jumpAction.AddBinding("<Gamepad>/buttonSouth");
     }
 
     void OnEnable()
@@ -45,6 +50,7 @@ public class PlayerInputManager : MonoBehaviour
         lookAction.Enable();
         crouchAction.Enable();
         sprintAction.Enable();
+        jumpAction.Enable();
     }
 
     void OnDisable()
@@ -53,6 +59,12 @@ public class PlayerInputManager : MonoBehaviour
         lookAction.Disable();
         crouchAction.Disable();
         sprintAction.Disable();
+        jumpAction.Disable();
+    }
+
+    public void ConsumeJump()
+    {
+        JumpPressed = false;
     }
 
     void Update()
@@ -60,7 +72,11 @@ public class PlayerInputManager : MonoBehaviour
         MoveInput = moveAction.ReadValue<Vector2>();
         LookInput = lookAction.ReadValue<Vector2>();
         IsCrouching = crouchAction.IsPressed();
-        IsSprinting = sprintAction.IsPressed(); 
+        IsSprinting = sprintAction.IsPressed();
+        // FixedUpdate okuyana kadar basışı tut, yüksek FPS'te kaybolmasın
+        if (jumpAction.WasPressedThisFrame())
+            JumpPressed = true;
+        JumpHeld = jumpAction.IsPressed();
 
         if (lookAction.activeControl != null)
         {

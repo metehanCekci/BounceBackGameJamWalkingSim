@@ -7,21 +7,31 @@ public class RealisticPlayerCamera : MonoBehaviour
     public PlayerMovement playerMovement; // Hız senkronizasyonu için
     public Rigidbody playerRb; // Gerçek fiziksel hızı okumak için
     public Transform playerBody;
-    public AudioSource footstepAudioSource; 
+    public AudioSource footstepAudioSource;
 
     [Header("Adım Sesleri & Seviyeleri")]
-    public AudioClip[] footstepSounds; 
+    public AudioClip[] footstepSounds;
     [Range(0f, 1f)] public float crouchVolume = 0.15f;
     [Range(0f, 1f)] public float walkVolume = 0.4f;
     [Range(0f, 1f)] public float sprintVolume = 0.7f;
+
+    [Header("Zıplama & İniş Sesleri")]
+    public AudioClip[] jumpSounds;    // Boşsa adım sesi kullanılır
+    public AudioClip[] landSounds;    // Boşsa adım sesi kullanılır
+    public AudioClip[] effortSounds;  // Sert inişte "hıh" nefes sesi (isteğe bağlı)
+    [Range(0f, 1f)] public float jumpVolume = 0.5f;
+    [Range(0f, 1f)] public float landVolume = 0.9f;
 
     [Header("Görüş Açısı (FOV)")]
     public float normalFOV = 60f;
     public float sprintFOV = 68f; // Koşunca hafifçe geri çekilen kamera efekti
     public float fovSmoothness = 4f;
+    public float fallFOVBoost = 6f;       // Hızlı düşerken hafif genişleyen görüş
+    public float fallFOVMaxSpeed = 10f;
+    public float landFOVPunch = 3f;       // İniş anında görüş bir anlığına daralır
 
     [Header("Bakış Ayarları")]
-    public float mouseSensitivity = 0.1f; 
+    public float mouseSensitivity = 0.1f;
     public float gamepadSensitivity = 150f;
     public float maxPitch = 80f;
     public float lookSmoothness = 20f;
@@ -40,32 +50,87 @@ public class RealisticPlayerCamera : MonoBehaviour
     public float sprintBobSpeed = 16f;
     public float sprintBobAmountY = 0.08f;
     public float sprintBobAmountX = 0.05f;
-    
+
     [Header("Duruş & Yana Yatma")]
-    public float standHeight = 0.8f;  
-    public float crouchHeight = 0.2f; 
-    public float heightSmoothness = 6f; 
-    public float tiltAngle = 3f; 
+    public float standHeight = 0.8f;
+    public float crouchHeight = 0.2f;
+    public float heightSmoothness = 6f;
+    public float tiltAngle = 3f;
     public float tiltSmooth = 5f;
+
+    [Header("Zıplama Kamera Hareketi")]
+    public float jumpDip = 0.05f;          // Kalkışta dizler bükülür gibi kısa çökme
+    public float jumpPitchKick = -2.5f;    // Kalkışta kafa hafif yukarı kalkar
+    public float airPitchPerSpeed = 0.35f; // Düşerken kafa hafif aşağı bakar
+    public float airPitchMax = 4f;
+
+    [Header("İniş Kamera Hareketi")]
+    public float landDipMin = 0.06f;
+    public float landDipMax = 0.28f;
+    public float landPitchMin = 2f;
+    public float landPitchMax = 9f;
+    public float landRollMax = 2.5f;       // Sert inişte kafa hafif yana savrulur
+    public float springStiffness = 120f;
+    public float springDamping = 14f;
+
+    [Header("Sarsıntı (Shake)")]
+    public float shakeMaxAngle = 2.5f;
+    public float shakeMaxOffset = 0.03f;
+    public float shakeFrequency = 22f;
+    public float shakeDecay = 2.2f;
+    [Range(0f, 1f)] public float landShakeThreshold = 0.35f; // Bu sertliğin altında sarsıntı yok
 
     private float lookPitch;
     private float yaw;
     private float bobTimer;
     private float currentTilt;
-    private float currentCameraY; 
+    private float currentCameraY;
     private bool isStepSoundPlayed = false;
     private Vector2 currentLookDelta;
     private Camera cam;
+
+    // Yay sistemleri: iniş/kalkış hareketleri sert kesilmeden, gerçek bir boyun gibi salınarak döner
+    private float springPosY, springVelY;
+    private float springPitch, springPitchVel;
+    private float springRoll, springRollVel;
+    private float airPitch;
+    private float fovPunch;
+    private float baseFOV;
+    private float shakeTrauma;
+    private float shakeSeed;
 
     void Start()
     {
         cam = GetComponent<Camera>();
         currentCameraY = standHeight;
+        shakeSeed = Random.Range(0f, 100f);
+        baseFOV = cam != null ? cam.fieldOfView : normalFOV;
+        // Ses seviyesini PlayOneShot ile veriyoruz, kaynağın kendi seviyesi tam kalsın
+        if (footstepAudioSource != null)
+            footstepAudioSource.volume = 1f;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        
+
         if (playerBody != null)
             yaw = playerBody.eulerAngles.y;
+    }
+
+    void OnEnable()
+    {
+        if (playerMovement != null)
+        {
+            playerMovement.OnJumped += HandleJumped;
+            playerMovement.OnLanded += HandleLanded;
+        }
+    }
+
+    void OnDisable()
+    {
+        if (playerMovement != null)
+        {
+            playerMovement.OnJumped -= HandleJumped;
+            playerMovement.OnLanded -= HandleLanded;
+        }
     }
 
     void LateUpdate()
@@ -73,8 +138,67 @@ public class RealisticPlayerCamera : MonoBehaviour
         if (inputManager == null || playerBody == null || playerRb == null || playerMovement == null) return;
 
         HandleLook();
+        UpdateSprings();
         HandleDynamicFOV();
         HandleHeadbobAndPosture();
+    }
+
+    private void HandleJumped()
+    {
+        springVelY -= jumpDip * springStiffness * 0.1f;
+        springPitchVel += jumpPitchKick * springStiffness * 0.1f;
+
+        PlayClip(jumpSounds.Length > 0 ? jumpSounds : footstepSounds, jumpVolume, 0.95f, 1.05f);
+    }
+
+    private void HandleLanded(float severity)
+    {
+        float dip = Mathf.Lerp(landDipMin, landDipMax, severity);
+        float pitch = Mathf.Lerp(landPitchMin, landPitchMax, severity);
+
+        // Anlık itme veriyoruz, yay geri kalanını doğal şekilde halleder
+        springVelY -= dip * springStiffness * 0.1f;
+        springPitchVel += pitch * springStiffness * 0.1f;
+        springRollVel += Random.Range(-1f, 1f) * landRollMax * severity * springStiffness * 0.1f;
+        fovPunch = -landFOVPunch * severity;
+
+        if (severity > landShakeThreshold)
+            shakeTrauma = Mathf.Clamp01(shakeTrauma + Mathf.InverseLerp(landShakeThreshold, 1f, severity));
+
+        // Sert iniş daha tok (düşük pitch) ve yüksek sesli
+        float volume = landVolume * Mathf.Lerp(0.5f, 1f, severity);
+        float pitchBase = Mathf.Lerp(1.05f, 0.85f, severity);
+        PlayClip(landSounds.Length > 0 ? landSounds : footstepSounds, volume, pitchBase - 0.05f, pitchBase + 0.05f);
+
+        if (severity > 0.6f)
+            PlayClip(effortSounds, volume * 0.8f, 0.95f, 1.05f);
+
+        isStepSoundPlayed = true; // İniş sesinin hemen üstüne adım sesi binmesin
+    }
+
+    private void UpdateSprings()
+    {
+        float dt = Time.deltaTime;
+        StepSpring(ref springPosY, ref springVelY, dt);
+        StepSpring(ref springPitch, ref springPitchVel, dt);
+        StepSpring(ref springRoll, ref springRollVel, dt);
+
+        // Havadayken düşüş hızına göre kafa hafif aşağı bakar (yere hazırlanma refleksi)
+        float targetAirPitch = 0f;
+        if (!playerMovement.IsGrounded && playerRb.linearVelocity.y < 0f)
+            targetAirPitch = Mathf.Min(-playerRb.linearVelocity.y * airPitchPerSpeed, airPitchMax);
+        airPitch = Mathf.Lerp(airPitch, targetAirPitch, dt * 6f);
+
+        fovPunch = Mathf.Lerp(fovPunch, 0f, dt * 8f);
+        shakeTrauma = Mathf.Max(0f, shakeTrauma - dt * shakeDecay);
+    }
+
+    private void StepSpring(ref float value, ref float velocity, float dt)
+    {
+        // Sönümlü yay: büyük kare sürelerinde patlamasın diye adımı sınırla
+        dt = Mathf.Min(dt, 0.033f);
+        velocity += (-springStiffness * value - springDamping * velocity) * dt;
+        value += velocity * dt;
     }
 
     private void HandleLook()
@@ -95,7 +219,12 @@ public class RealisticPlayerCamera : MonoBehaviour
         if (cam == null) return;
         bool isSprinting = inputManager.IsSprinting && !inputManager.IsCrouching && inputManager.MoveInput.y > 0;
         float targetFOV = isSprinting ? sprintFOV : normalFOV;
-        cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, targetFOV, Time.deltaTime * fovSmoothness);
+
+        if (!playerMovement.IsGrounded && playerRb.linearVelocity.y < 0f)
+            targetFOV += fallFOVBoost * Mathf.Clamp01(-playerRb.linearVelocity.y / fallFOVMaxSpeed);
+
+        baseFOV = Mathf.Lerp(baseFOV, targetFOV, Time.deltaTime * fovSmoothness);
+        cam.fieldOfView = baseFOV + fovPunch;
     }
 
     private void HandleHeadbobAndPosture()
@@ -107,7 +236,7 @@ public class RealisticPlayerCamera : MonoBehaviour
         float targetBobSpeed = isCrouch ? crouchBobSpeed : (isSprint ? sprintBobSpeed : walkBobSpeed);
         float targetBobY = isCrouch ? crouchBobAmountY : (isSprint ? sprintBobAmountY : walkBobAmountY);
         float targetBobX = isCrouch ? crouchBobAmountX : (isSprint ? sprintBobAmountX : walkBobAmountX);
-        
+
         // 2. Yükseklik Ayarı
         currentCameraY = Mathf.Lerp(currentCameraY, isCrouch ? crouchHeight : standHeight, Time.deltaTime * heightSmoothness);
         Vector3 newPos = transform.localPosition;
@@ -116,21 +245,21 @@ public class RealisticPlayerCamera : MonoBehaviour
         // 3. GERÇEK FİZİKSEL HIZ ORANTISI (Uçma sorununu çözen matematik)
         // Y eksenini(düşmeyi) saymadan sadece yatayda gerçekten ne kadar hızlı gittiğimize bakıyoruz
         float actualSpeed = new Vector3(playerRb.linearVelocity.x, 0, playerRb.linearVelocity.z).magnitude;
-        
-        // Olmamız gereken hıza ulaşıp ulaşmadığımızın oranı (Duvara takılırsan bu oran sıfıra yaklaşır)
-        float speedRatio = Mathf.Clamp01(actualSpeed / playerMovement.CurrentExpectedSpeed); 
 
-        // Eğer karakter fiziken hareket ediyorsa (sürtünme veya normal yürüyüş)
-        if (actualSpeed > 0.1f && inputManager.MoveInput.magnitude > 0.1f)
+        // Olmamız gereken hıza ulaşıp ulaşmadığımızın oranı (Duvara takılırsan bu oran sıfıra yaklaşır)
+        float speedRatio = Mathf.Clamp01(actualSpeed / playerMovement.CurrentExpectedSpeed);
+
+        // Eğer karakter fiziken yerde hareket ediyorsa (havada adım atılmaz)
+        if (playerMovement.IsGrounded && actualSpeed > 0.1f && inputManager.MoveInput.magnitude > 0.1f)
         {
             // Zamanlayıcıyı sadece gerçek hıza orantılı arttır!
             bobTimer += Time.deltaTime * (targetBobSpeed * speedRatio);
 
             float bobSin = Mathf.Sin(bobTimer);
-            
+
             // Sarsıntı şiddetini de yavaşlamaya oranla yumuşatıyoruz
             newPos.y = currentCameraY + (bobSin * (targetBobY * speedRatio));
-            newPos.x = Mathf.Cos(bobTimer / 2f) * (targetBobX * speedRatio); 
+            newPos.x = Mathf.Cos(bobTimer / 2f) * (targetBobX * speedRatio);
 
             if (bobSin < -0.95f && !isStepSoundPlayed)
             {
@@ -150,21 +279,36 @@ public class RealisticPlayerCamera : MonoBehaviour
             newPos.x = Mathf.Lerp(newPos.x, 0f, Time.deltaTime * 5f);
         }
 
+        // 4. Sarsıntı (trauma karesi ile: küçük değerlerde neredeyse hissedilmez, büyüklerde sert)
+        float shake = shakeTrauma * shakeTrauma;
+        float t = Time.time * shakeFrequency;
+        float shakePitch = (Mathf.PerlinNoise(shakeSeed, t) * 2f - 1f) * shakeMaxAngle * shake;
+        float shakeYaw = (Mathf.PerlinNoise(shakeSeed + 1f, t) * 2f - 1f) * shakeMaxAngle * shake;
+        float shakeRoll = (Mathf.PerlinNoise(shakeSeed + 2f, t) * 2f - 1f) * shakeMaxAngle * shake;
+        newPos.x += (Mathf.PerlinNoise(shakeSeed + 3f, t) * 2f - 1f) * shakeMaxOffset * shake;
+
+        newPos.y += springPosY;
         transform.localPosition = newPos;
 
-        // 4. Yana Yatma (Tilt)
+        // 5. Yana Yatma (Tilt)
         float targetTilt = -inputManager.MoveInput.x * tiltAngle;
         currentTilt = Mathf.Lerp(currentTilt, targetTilt, Time.deltaTime * tiltSmooth);
-        transform.localRotation = Quaternion.Euler(lookPitch, 0f, currentTilt);
+
+        float finalPitch = Mathf.Clamp(lookPitch + springPitch + airPitch + shakePitch, -maxPitch - 10f, maxPitch + 10f);
+        transform.localRotation = Quaternion.Euler(finalPitch, shakeYaw, currentTilt + springRoll + shakeRoll);
     }
 
     private void PlayDynamicFootstep(bool isCrouch, bool isSprint)
     {
-        if (footstepSounds.Length == 0 || footstepAudioSource == null) return;
-        
         float targetVolume = isCrouch ? crouchVolume : (isSprint ? sprintVolume : walkVolume);
-        footstepAudioSource.volume = targetVolume;
-        footstepAudioSource.pitch = Random.Range(0.9f, 1.1f);
-        footstepAudioSource.PlayOneShot(footstepSounds[Random.Range(0, footstepSounds.Length)]);
+        PlayClip(footstepSounds, targetVolume, 0.9f, 1.1f);
+    }
+
+    private void PlayClip(AudioClip[] clips, float volume, float minPitch, float maxPitch)
+    {
+        if (clips == null || clips.Length == 0 || footstepAudioSource == null) return;
+
+        footstepAudioSource.pitch = Random.Range(minPitch, maxPitch);
+        footstepAudioSource.PlayOneShot(clips[Random.Range(0, clips.Length)], volume);
     }
 }
