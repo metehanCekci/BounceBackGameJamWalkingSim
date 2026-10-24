@@ -31,6 +31,7 @@ public class RealisticPlayerCamera : MonoBehaviour
     public float fallFOVBoost = 6f;       // Hızlı düşerken hafif genişleyen görüş
     public float fallFOVMaxSpeed = 10f;
     public float landFOVPunch = 3f;       // İniş anında görüş bir anlığına daralır
+    public float nearClipPlane = 0.03f;   // Duvara dayanınca ekran köşeleri duvarın içine girip arkasını göstermesin
 
     [Header("Bakış Ayarları")]
     public float mouseSensitivity = 0.1f;
@@ -123,6 +124,8 @@ public class RealisticPlayerCamera : MonoBehaviour
         currentCameraY = standHeight;
         shakeSeed = Random.Range(0f, 100f);
         baseFOV = cam != null ? cam.fieldOfView : normalFOV;
+        if (cam != null)
+            cam.nearClipPlane = nearClipPlane;
         // Ses seviyesini PlayOneShot ile veriyoruz, kaynağın kendi seviyesi tam kalsın
         if (footstepAudioSource != null)
             footstepAudioSource.volume = 1f;
