@@ -1,72 +1,35 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Rendering;
 using UnityEngine.Serialization;
 
-[Serializable]
-public class InteractOutcome
-{
-    public string label = "Sonuç";
-    [Min(0f)] public float weight = 1f;   // Yüksek olan daha sık çıkar
-    public SubtitleLine[] lines;
-    public UnityEvent onPicked = new UnityEvent();
-
-    // Ağırlığa göre rastgele bir sonuç seçer
-    public static InteractOutcome Pick(InteractOutcome[] list)
-    {
-        if (list == null || list.Length == 0)
-            return null;
-
-        float total = 0f;
-        foreach (InteractOutcome o in list)
-            total += o.weight;
-
-        if (total <= 0f)
-            return list[0];
-
-        float roll = UnityEngine.Random.Range(0f, total);
-        foreach (InteractOutcome o in list)
-        {
-            roll -= o.weight;
-            if (roll <= 0f)
-                return o;
-        }
-        return list[list.Length - 1];
-    }
-}
-
 // Etkileşim objesi. Oyuncu objeye bakıp E'yi basılı tutunca (PlayerInteractor) bar dolar,
-// dolunca sonuç seçilir ve altyazılar oynar. Collider gerekmez, hedefleme modelin boyutuna göre yapılır.
+// dolunca bu objenin metni altyazı olarak oynar. Collider gerekmez, hedefleme modelin boyutuna göre yapılır.
 public class Interactable : MonoBehaviour
 {
     public static readonly List<Interactable> All = new List<Interactable>();
+
+    [Header("Metin")]
+    [TextArea(2, 4)] public string text;   // Aranınca oynayacak metin
+    public SubtitleVoice voice;
 
     [Header("Etkileşim")]
     [FormerlySerializedAs("searchTime")]
     public float holdTime = 1.5f;          // E'nin basılı tutulma süresi
     public string prompt = "Search";       // Barın altında yazan kelime
-    public bool oneTime = false;
-    public SearchSequence group;           // Doluysa sonuç grup tarafından belirlenir
+    public bool oneTime = true;
+    public SearchSequence group;           // Doluysa eşyanın çıktığı çuvalda grubun metni oynar
 
     [Header("Vurgu (Outline)")]
     public bool highlight = true;          // Aranabilirken sarı kenar çizgisi
     public Color highlightColor = new Color(1f, 0.8f, 0.1f);
     public float outlineThickness = 0.02f; // Metre
 
-    [Header("Basılı Tutmaya Başlayınca (ilk sefer)")]
-    public SubtitleLine[] searchLines;
-
-    [Header("Sonuçlar (ağırlığa göre rastgele)")]
-    public InteractOutcome[] outcomes;
-
     [Header("Olaylar")]
-    public UnityEvent onStarted;
     public UnityEvent onFinished;
 
     private bool used;
-    private bool searchLinesPlayed;
     private Renderer[] renderers;
     private readonly List<Renderer> outlineRenderers = new List<Renderer>();
     private Material outlineMaterial;
@@ -141,6 +104,19 @@ public class Interactable : MonoBehaviour
         }
     }
 
+    public void Complete()
+    {
+        // Grup eşyayı bu çuvala koyduysa grubun metni, değilse bu çuvalın kendi metni oynar
+        bool found = group != null && group.Register(this);
+        if (found)
+            group.SayFound();
+        else if (!string.IsNullOrWhiteSpace(text))
+            Subtitles.Say(text, voice);
+
+        used = true;
+        onFinished.Invoke();
+    }
+
     // Objenin biraz büyütülmüş, ters yüzlü bir kopyası: arkadan taşan kısmı kenar çizgisi gibi görünür
     private void CreateOutline()
     {
@@ -185,29 +161,5 @@ public class Interactable : MonoBehaviour
             mr.receiveShadows = false;
             outlineRenderers.Add(mr);
         }
-    }
-
-    public void BeginHold()
-    {
-        if (!searchLinesPlayed && searchLines != null && searchLines.Length > 0)
-        {
-            Subtitles.Say(searchLines);
-            searchLinesPlayed = true;
-        }
-        onStarted.Invoke();
-    }
-
-    public void Complete()
-    {
-        InteractOutcome picked = group != null ? group.Register(this) : InteractOutcome.Pick(outcomes);
-        if (picked != null)
-        {
-            if (picked.lines != null && picked.lines.Length > 0)
-                Subtitles.Say(picked.lines);
-            picked.onPicked?.Invoke();
-        }
-
-        used = true;
-        onFinished.Invoke();
     }
 }
