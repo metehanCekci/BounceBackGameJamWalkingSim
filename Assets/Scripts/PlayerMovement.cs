@@ -31,6 +31,7 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody rb;
     private Collider col;
+    private PlayerVault vault; // İsteğe bağlı, yoksa zıplama normal çalışır
     private RaycastHit slopeHit;
     private bool isGrounded;
     private float coyoteTimer;
@@ -52,6 +53,7 @@ public class PlayerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
+        vault = GetComponent<PlayerVault>();
         if (inputManager == null)
             inputManager = GetComponent<PlayerInputManager>();
         if (inputManager == null)
@@ -65,8 +67,19 @@ public class PlayerMovement : MonoBehaviour
     void FixedUpdate()
     {
         if (inputManager == null) return;
+
+        // Engel atlarken hareketi PlayerVault yönetir
+        if (vault != null && vault.IsVaulting)
+        {
+            isGrounded = false; // Kamera adım sallantısı/sesi yapmasın
+            lowestAirVelocityY = 0f; // Atlama bitince iniş efekti tetiklenmesin, onu vault kendisi yapar
+            inputManager.ConsumeJump(); // Atlarken basılan tuş inince zıplatmasın
+            return;
+        }
+
         CheckGround();
         UpdateJumpTimers();
+        if (vault != null && vault.IsVaulting) return;
         MovePlayer();
     }
 
@@ -140,6 +153,14 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             jumpBufferTimer -= Time.fixedDeltaTime;
+        }
+
+        // Önümüzde atlanabilir engel varsa zıplamak yerine üstünden geç
+        if (jumpBufferTimer > 0f && vault != null && vault.TryStartVault())
+        {
+            jumpBufferTimer = 0f;
+            coyoteTimer = 0f;
+            return;
         }
 
         if (jumpBufferTimer > 0f && coyoteTimer > 0f)

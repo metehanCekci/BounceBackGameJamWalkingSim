@@ -80,6 +80,14 @@ public class RealisticPlayerCamera : MonoBehaviour
     public float shakeDecay = 2.2f;
     [Range(0f, 1f)] public float landShakeThreshold = 0.35f; // Bu sertliğin altında sarsıntı yok
 
+    [Header("Engel Atlama (Vault) Kamera")]
+    public PlayerVault playerVault;     // Boşsa oyuncudan otomatik bulunur
+    public float vaultPitch = 8f;       // Engelin üstünden geçerken kafa öne eğilir
+    public float climbPitch = 12f;      // Tırmanırken kafa engelin üstüne bakar
+    public float vaultRoll = 4f;        // Eli engele koyunca gövde hafif yana yatar
+    public AudioClip[] vaultSounds;     // Boşsa zıplama sesi kullanılır
+    [Range(0f, 1f)] public float vaultVolume = 0.6f;
+
     private float lookPitch;
     private float yaw;
     private float bobTimer;
@@ -98,6 +106,9 @@ public class RealisticPlayerCamera : MonoBehaviour
     private float baseFOV;
     private float shakeTrauma;
     private float shakeSeed;
+    private float vaultPitchOffset;
+    private float vaultRollOffset;
+    private float vaultRollSign = 1f;
 
     void Start()
     {
@@ -117,10 +128,18 @@ public class RealisticPlayerCamera : MonoBehaviour
 
     void OnEnable()
     {
+        if (playerVault == null && playerMovement != null)
+            playerVault = playerMovement.GetComponent<PlayerVault>();
+
         if (playerMovement != null)
         {
             playerMovement.OnJumped += HandleJumped;
             playerMovement.OnLanded += HandleLanded;
+        }
+        if (playerVault != null)
+        {
+            playerVault.OnVaultStarted += HandleVaultStarted;
+            playerVault.OnVaultEnded += HandleVaultEnded;
         }
     }
 
@@ -130,6 +149,11 @@ public class RealisticPlayerCamera : MonoBehaviour
         {
             playerMovement.OnJumped -= HandleJumped;
             playerMovement.OnLanded -= HandleLanded;
+        }
+        if (playerVault != null)
+        {
+            playerVault.OnVaultStarted -= HandleVaultStarted;
+            playerVault.OnVaultEnded -= HandleVaultEnded;
         }
     }
 
@@ -176,6 +200,26 @@ public class RealisticPlayerCamera : MonoBehaviour
         isStepSoundPlayed = true; // İniş sesinin hemen üstüne adım sesi binmesin
     }
 
+    private void HandleVaultStarted(bool isClimb)
+    {
+        vaultRollSign = Random.value < 0.5f ? -1f : 1f;
+        // Engele tutunup itilirken kısa bir çökme
+        springVelY -= jumpDip * springStiffness * 0.1f;
+
+        AudioClip[] clips = vaultSounds.Length > 0 ? vaultSounds : (jumpSounds.Length > 0 ? jumpSounds : footstepSounds);
+        PlayClip(clips, vaultVolume, 0.95f, 1.05f);
+    }
+
+    private void HandleVaultEnded()
+    {
+        // Engelden inişi hafif bir iniş gibi hissettir
+        springVelY -= landDipMin * springStiffness * 0.1f;
+        springPitchVel += landPitchMin * springStiffness * 0.1f;
+
+        PlayClip(landSounds.Length > 0 ? landSounds : footstepSounds, landVolume * 0.5f, 1f, 1.1f);
+        isStepSoundPlayed = true;
+    }
+
     private void UpdateSprings()
     {
         float dt = Time.deltaTime;
@@ -188,6 +232,18 @@ public class RealisticPlayerCamera : MonoBehaviour
         if (!playerMovement.IsGrounded && playerRb.linearVelocity.y < 0f)
             targetAirPitch = Mathf.Min(-playerRb.linearVelocity.y * airPitchPerSpeed, airPitchMax);
         airPitch = Mathf.Lerp(airPitch, targetAirPitch, dt * 6f);
+
+        // Atlama boyunca kafa önce öne eğilir/yana yatar, sona doğru toparlanır
+        float targetVaultPitch = 0f;
+        float targetVaultRoll = 0f;
+        if (playerVault != null && playerVault.IsVaulting)
+        {
+            float arc = Mathf.Sin(playerVault.Progress * Mathf.PI);
+            targetVaultPitch = arc * (playerVault.IsClimbing ? climbPitch : vaultPitch);
+            targetVaultRoll = arc * vaultRoll * vaultRollSign;
+        }
+        vaultPitchOffset = Mathf.Lerp(vaultPitchOffset, targetVaultPitch, dt * 12f);
+        vaultRollOffset = Mathf.Lerp(vaultRollOffset, targetVaultRoll, dt * 12f);
 
         fovPunch = Mathf.Lerp(fovPunch, 0f, dt * 8f);
         shakeTrauma = Mathf.Max(0f, shakeTrauma - dt * shakeDecay);
@@ -294,8 +350,8 @@ public class RealisticPlayerCamera : MonoBehaviour
         float targetTilt = -inputManager.MoveInput.x * tiltAngle;
         currentTilt = Mathf.Lerp(currentTilt, targetTilt, Time.deltaTime * tiltSmooth);
 
-        float finalPitch = Mathf.Clamp(lookPitch + springPitch + airPitch + shakePitch, -maxPitch - 10f, maxPitch + 10f);
-        transform.localRotation = Quaternion.Euler(finalPitch, shakeYaw, currentTilt + springRoll + shakeRoll);
+        float finalPitch = Mathf.Clamp(lookPitch + springPitch + airPitch + shakePitch + vaultPitchOffset, -maxPitch - 10f, maxPitch + 10f);
+        transform.localRotation = Quaternion.Euler(finalPitch, shakeYaw, currentTilt + springRoll + shakeRoll + vaultRollOffset);
     }
 
     private void PlayDynamicFootstep(bool isCrouch, bool isSprint)
