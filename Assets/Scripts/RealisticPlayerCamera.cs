@@ -145,6 +145,7 @@ public class RealisticPlayerCamera : MonoBehaviour
         {
             playerMovement.OnJumped += HandleJumped;
             playerMovement.OnLanded += HandleLanded;
+            playerMovement.OnTeleported += HandleTeleported;
         }
         if (playerVault != null)
         {
@@ -159,6 +160,7 @@ public class RealisticPlayerCamera : MonoBehaviour
         {
             playerMovement.OnJumped -= HandleJumped;
             playerMovement.OnLanded -= HandleLanded;
+            playerMovement.OnTeleported -= HandleTeleported;
         }
         if (playerVault != null)
         {
@@ -228,6 +230,23 @@ public class RealisticPlayerCamera : MonoBehaviour
 
         PlayClip(landSounds.Length > 0 ? landSounds : footstepSounds, landVolume * 0.5f, 1f, 1.1f);
         isStepSoundPlayed = true;
+    }
+
+    private void HandleTeleported()
+    {
+        // Başa dönünce bakış yeni duruşa otursun, yarım kalan yay/sarsıntı hareketleri sıfırlansın
+        if (playerBody != null)
+            yaw = playerBody.eulerAngles.y;
+        lookPitch = 0f;
+        currentLookDelta = Vector2.zero;
+        springPosY = springVelY = 0f;
+        springPitch = springPitchVel = 0f;
+        springRoll = springRollVel = 0f;
+        airPitch = 0f;
+        fovPunch = 0f;
+        shakeTrauma = 0f;
+        vaultPitchOffset = vaultRollOffset = 0f;
+        hasFocus = false;
     }
 
     // Etkileşim sırasında kamera bu noktaya yumuşakça döner, fare girişi kilitli kalır

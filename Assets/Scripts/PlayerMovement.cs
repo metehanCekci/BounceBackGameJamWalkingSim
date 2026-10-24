@@ -56,6 +56,7 @@ public class PlayerMovement : MonoBehaviour
     // Kamera ve ses efektleri bunlara abone olur
     public event Action OnJumped;
     public event Action<float> OnLanded; // 0-1 arası iniş sertliği
+    public event Action OnTeleported;    // Kamera bakışını yeni yöne oturtur
 
     void Awake()
     {
@@ -106,6 +107,30 @@ public class PlayerMovement : MonoBehaviour
         UpdateJumpTimers();
         if (vault != null && vault.IsVaulting) return;
         MovePlayer();
+    }
+
+    // Ölüp başa dönerken: hız, zıplama/iniş durumu ve yarım kalan atlama sıfırlanır
+    public void Teleport(Vector3 position, Quaternion rotation)
+    {
+        if (vault != null)
+            vault.Cancel();
+
+        // Interpolation açık; ikisini birden vermezsek eski yerden kayarak gelir
+        transform.SetPositionAndRotation(position, rotation);
+        rb.position = position;
+        rb.rotation = rotation;
+        rb.linearVelocity = Vector3.zero;
+
+        isGrounded = false;
+        coyoteTimer = 0f;
+        jumpBufferTimer = 0f;
+        jumpGroundIgnoreTimer = 0f;
+        lowestAirVelocityY = 0f;
+        landingSlowTimer = 0f;
+        if (inputManager != null)
+            inputManager.ConsumeJump();
+
+        OnTeleported?.Invoke();
     }
 
     private void UpdateCrouch()

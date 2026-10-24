@@ -187,12 +187,25 @@ public class PlayerVault : MonoBehaviour
 
     private void EndVault()
     {
-        rb.isKinematic = false;
-        rb.collisionDetectionMode = savedCollisionMode;
+        RestorePhysics();
         rb.linearVelocity = exitVelocity;
-        IsVaulting = false;
         Progress = 1f;
         OnVaultEnded?.Invoke();
+    }
+
+    // Ölüp başa dönerken yarım kalan atlamayı iniş efekti/sesi olmadan bitir
+    public void Cancel()
+    {
+        if (!IsVaulting) return;
+        RestorePhysics();
+        Progress = 0f;
+    }
+
+    private void RestorePhysics()
+    {
+        rb.isKinematic = false;
+        rb.collisionDetectionMode = savedCollisionMode;
+        IsVaulting = false;
     }
 
     private Vector3 EvaluatePath(float t)
