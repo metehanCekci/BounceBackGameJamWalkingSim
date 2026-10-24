@@ -273,7 +273,7 @@ public class RealisticPlayerCamera : MonoBehaviour
     private void HandleDynamicFOV()
     {
         if (cam == null) return;
-        bool isSprinting = inputManager.IsSprinting && !inputManager.IsCrouching && inputManager.MoveInput.y > 0;
+        bool isSprinting = inputManager.IsSprinting && !playerMovement.IsCrouching && inputManager.MoveInput.y > 0;
         float targetFOV = isSprinting ? sprintFOV : normalFOV;
 
         if (!playerMovement.IsGrounded && playerRb.linearVelocity.y < 0f)
@@ -286,7 +286,7 @@ public class RealisticPlayerCamera : MonoBehaviour
     private void HandleHeadbobAndPosture()
     {
         // 1. Durum Tespiti
-        bool isCrouch = inputManager.IsCrouching;
+        bool isCrouch = playerMovement.IsCrouching;
         bool isSprint = inputManager.IsSprinting && !isCrouch && inputManager.MoveInput.y > 0;
 
         float targetBobSpeed = isCrouch ? crouchBobSpeed : (isSprint ? sprintBobSpeed : walkBobSpeed);

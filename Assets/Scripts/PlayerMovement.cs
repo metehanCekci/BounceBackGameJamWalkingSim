@@ -14,8 +14,10 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Zemin & Fizik")]
     public float maxSlopeAngle = 50f;
-    public float normalHeight = 1.5f;
-    public float crouchHeight = 0.8f;
+
+    [Header("Eğilme")]
+    [Range(0.3f, 1f)] public float crouchHeightRatio = 0.65f; // Eğilince collider boyu, ayakta boyun bu oranı kadar
+    public float crouchTransitionSpeed = 6f; // Collider boyunun değişme hızı (birim/sn)
 
     [Header("Zıplama")]
     public float jumpHeight = 1.4f;
@@ -31,6 +33,10 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody rb;
     private Collider col;
+    private CapsuleCollider capsule; // Eğilince boyu değişecek collider
+    private float standColliderHeight;
+    private Vector3 standColliderCenter;
+    private bool isCrouched;
     private PlayerVault vault; // İsteğe bağlı, yoksa zıplama normal çalışır
     private RaycastHit slopeHit;
     private bool isGrounded;
@@ -44,6 +50,8 @@ public class PlayerMovement : MonoBehaviour
     // Kameranın okuyabilmesi için mevcut hedeflenen hızı dışa açıyoruz
     public float CurrentExpectedSpeed { get; private set; }
     public bool IsGrounded => isGrounded;
+    // Tuş bırakılsa bile tavan alçaksa eğik kalırız, kamera tuşu değil bunu okur
+    public bool IsCrouching => isCrouched;
 
     // Kamera ve ses efektleri bunlara abone olur
     public event Action OnJumped;
@@ -54,6 +62,22 @@ public class PlayerMovement : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
         vault = GetComponent<PlayerVault>();
+        capsule = col as CapsuleCollider;
+        if (capsule != null)
+        {
+            standColliderHeight = capsule.height;
+            standColliderCenter = capsule.center;
+        }
+
+        // Duvara sürtünüp havada asılı kalmayalım; yerde durmayı zaten hareket kodu sağlıyor
+        col.material = new PhysicsMaterial("PlayerNoFriction")
+        {
+            dynamicFriction = 0f,
+            staticFriction = 0f,
+            bounciness = 0f,
+            frictionCombine = PhysicsMaterialCombine.Minimum,
+            bounceCombine = PhysicsMaterialCombine.Minimum
+        };
         if (inputManager == null)
             inputManager = GetComponent<PlayerInputManager>();
         if (inputManager == null)
@@ -77,10 +101,45 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
+        UpdateCrouch();
         CheckGround();
         UpdateJumpTimers();
         if (vault != null && vault.IsVaulting) return;
         MovePlayer();
+    }
+
+    private void UpdateCrouch()
+    {
+        bool wantsCrouch = inputManager.IsCrouching;
+        // Tuşu bıraktık ama başımızın üstünde yer yoksa eğik kalmaya devam
+        if (!wantsCrouch && isCrouched && !CanStandUp())
+            wantsCrouch = true;
+        isCrouched = wantsCrouch;
+
+        if (capsule == null) return;
+
+        // Ayaklar yerinde kalsın diye boy kısalırken merkezi de aşağı kaydır
+        float targetHeight = isCrouched ? standColliderHeight * crouchHeightRatio : standColliderHeight;
+        capsule.height = Mathf.MoveTowards(capsule.height, targetHeight, crouchTransitionSpeed * Time.fixedDeltaTime);
+        capsule.center = standColliderCenter + Vector3.down * ((standColliderHeight - capsule.height) * 0.5f);
+    }
+
+    private bool CanStandUp()
+    {
+        if (capsule == null) return true;
+
+        Bounds bounds = col.bounds;
+        float radius = Mathf.Max(bounds.extents.x, bounds.extents.z) * 0.95f;
+        float standHeight = standColliderHeight * transform.lossyScale.y;
+        Vector3 feet = new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+        Vector3 bottom = feet + Vector3.up * (radius + 0.05f);
+        Vector3 top = feet + Vector3.up * (standHeight - radius);
+
+        foreach (Collider other in Physics.OverlapCapsule(bottom, top, radius, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+        {
+            if (other != col) return false;
+        }
+        return true;
     }
 
     private void CheckGround()
@@ -167,7 +226,7 @@ public class PlayerMovement : MonoBehaviour
         {
             float jumpVelocity = Mathf.Sqrt(2f * Mathf.Abs(Physics.gravity.y) * jumpHeight);
             // Eğilirken zıplama daha zayıf
-            if (inputManager.IsCrouching)
+            if (isCrouched)
                 jumpVelocity *= 0.75f;
 
             Vector3 velocity = rb.linearVelocity;
@@ -187,7 +246,7 @@ public class PlayerMovement : MonoBehaviour
     {
         Vector3 moveDirection = transform.forward * inputManager.MoveInput.y + transform.right * inputManager.MoveInput.x;
 
-        if (inputManager.IsCrouching)
+        if (isCrouched)
             CurrentExpectedSpeed = crouchSpeed;
         else if (inputManager.IsSprinting && inputManager.MoveInput.y > 0)
             CurrentExpectedSpeed = sprintSpeed;
@@ -215,7 +274,11 @@ public class PlayerMovement : MonoBehaviour
                 slopeMoveDirection.z * CurrentExpectedSpeed);
 
             if (inputManager.MoveInput.magnitude == 0)
+            {
                 targetVelocity = new Vector3(0f, targetVelocity.y, 0f);
+                // Sürtünmesiz olduğumuz için yokuşta dururken aşağı kaymayalım
+                rb.AddForce(-Physics.gravity, ForceMode.Acceleration);
+            }
 
             rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, targetVelocity, 0.18f);
         }
