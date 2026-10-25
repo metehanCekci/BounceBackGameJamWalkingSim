@@ -95,8 +95,9 @@ public class SoldierStandoff : MonoBehaviour
     [Header("Sarılma")]
     public float hugDistance = 3f;         // Bu kadar yaklaşınca çocuk askere koşar
     public float hugStopDistance = 1f;
-    public float fadeOutTime = 1.2f;
-    public float blackTime = 1.5f;
+    public float fadeOutTime = 0.5f;       // Askere koşarken ekranın kararma süresi
+    public float blackTime = 0.5f;         // Perde kapalıyken sonraki sahneden önce bekleme
+    public Color fadeColor = Color.white;  // Sarılınca ekran bu renge döner
     public float fadeInTime = 2f;
     [Tooltip("Build listesindeki sıra. -1: bu sahneden sonraki sahne.")]
     public int nextSceneIndex = ScreenFader.NextScene;
@@ -625,6 +626,10 @@ public class SoldierStandoff : MonoBehaviour
         Subtitles.Clear();
         if (uiGroup != null) uiGroup.alpha = 0f;
         if (heartSource != null) heartSource.Stop();
+        // Gergin müzik ekranla birlikte söner, sonraki sahnedeki videonun sesine binmesin
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.FadeOutMusic(fadeOutTime + blackTime);
+        ScreenFader.Instance.SetColor(fadeColor);
         ScreenFader.Instance.TransitionToScene(nextSceneIndex, fadeOutTime, fadeInTime, null, 1f, blackTime);
 
         // Yaklaştıkça bakış yüzden göğsüne iner (çocuk yüzünü askere gömer)

@@ -15,7 +15,8 @@ public class VideoCutscene : MonoBehaviour
     [Range(0f, 1f)] public float volume = 1f;
     public bool preload = true;            // Sahne açılınca arka planda hazırlanır, başlarken takılmaz
     public float blackBeforePlay = 0.5f;   // Oynamadan önce siyah ekranda bekleme (video bu arada tam hazır olur)
-    public float videoFadeIn = 1f;         // Video başlarken siyahtan açılma süresi (ses de birlikte yükselir)
+    public float videoFadeIn = 1f;         // Video başlarken siyahtan açılma süresi (ses de birlikte yükselir), 0: tak diye gelir
+    public Color backgroundColor = Color.black; // Video gelmeden önceki zemin (önceki sahne beyaza kararıyorsa beyaz yap)
 
     [Header("Başlatma")]
     public bool playOnStart = false;       // Sahne açılınca oynar
@@ -23,6 +24,7 @@ public class VideoCutscene : MonoBehaviour
 
     [Header("Oynarken")]
     public bool lockPlayer = true;
+    public bool stopGameMusic = true;      // Video başlarken çalan oyun müziği kısılıp durur
     public bool skippable = true;          // Boşluk / Enter / Esc ile geçilebilir
     public float skipDelay = 1f;           // Yanlışlıkla geçilmesin diye başta bekleme
     public bool pauseWorldRendering = true; // Video oynarken arkadaki dünya çizilmez (görünmüyor zaten, takılmayı azaltır)
@@ -106,6 +108,9 @@ public class VideoCutscene : MonoBehaviour
         PlayerInputManager input = lockPlayer ? FindAnyObjectByType<PlayerInputManager>() : null;
         if (input != null) input.InputLocked = true;
         Subtitles.Clear();
+        // Oyunun müziği videonun sesine binmesin
+        if (stopGameMusic && AudioManager.Instance != null)
+            AudioManager.Instance.FadeOutMusic(0.5f);
 
         // Siyah zemin hemen gelir; video hazırlanırken ve kısa bir süre daha siyah kalır
         if (screen == null)
@@ -201,7 +206,7 @@ public class VideoCutscene : MonoBehaviour
         canvas.enabled = false;
 
         RectTransform background = CreateFullScreen("Background", screen.transform);
-        background.gameObject.AddComponent<Image>().color = Color.black;
+        background.gameObject.AddComponent<Image>().color = backgroundColor;
 
         RectTransform videoRect = CreateFullScreen("Video", screen.transform);
         image = videoRect.gameObject.AddComponent<RawImage>();

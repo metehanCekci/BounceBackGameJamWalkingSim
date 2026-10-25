@@ -32,6 +32,7 @@ public class ScreenFader : MonoBehaviour
     public static bool IsBusy => instance != null && instance.IsTransitioning;
 
     private CanvasGroup canvasGroup;
+    private Image curtain;
     private AudioSource audioSource;
 
     void Awake()
@@ -61,9 +62,9 @@ public class ScreenFader : MonoBehaviour
         black.anchorMax = Vector2.one;
         black.offsetMin = Vector2.zero;
         black.offsetMax = Vector2.zero;
-        Image image = black.gameObject.AddComponent<Image>();
-        image.color = Color.black;
-        image.raycastTarget = false;
+        curtain = black.gameObject.AddComponent<Image>();
+        curtain.color = Color.black;
+        curtain.raycastTarget = false;
 
         audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
@@ -148,7 +149,14 @@ public class ScreenFader : MonoBehaviour
         AudioListener.pause = false;
         yield return new WaitForSecondsRealtime(settleTimeAfterLoad);
         yield return Fade(0f, fadeInTime);
+        curtain.color = Color.black;
         IsTransitioning = false;
+    }
+
+    // Perdenin rengi (ör. beyaza geçiş). Sonraki sahne açılınca kendiliğinden siyaha döner.
+    public void SetColor(Color color)
+    {
+        curtain.color = color;
     }
 
     // Ekranı anında karart, sesi çal, karanlıkta işi yap (ör. oyuncuyu başa al), sonra ekranı aç

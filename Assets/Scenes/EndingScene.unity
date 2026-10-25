@@ -2483,8 +2483,8 @@ MonoBehaviour:
   stressAfterRetreat: 0.5
   hugDistance: 3
   hugStopDistance: 1
-  fadeOutTime: 1.2
-  blackTime: 1.5
+  fadeOutTime: 0.5
+  blackTime: 0.5
   fadeInTime: 2
   nextSceneIndex: -1
   barLabel: "Askerin gerginli\u011Fi"

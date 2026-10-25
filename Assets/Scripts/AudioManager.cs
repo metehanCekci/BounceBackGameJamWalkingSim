@@ -116,6 +116,33 @@ public class AudioManager : MonoBehaviour
         }
     }
 
+    // Müziği yavaşça kısıp tamamen durdurur (ör. sahne kapanırken)
+    public void FadeOutMusic(float duration)
+    {
+        if (fade != null) StopCoroutine(fade);
+        fade = StartCoroutine(FadeOutRoutine(duration));
+    }
+
+    private IEnumerator FadeOutRoutine(float duration)
+    {
+        float a = musicA.volume, b = musicB.volume;
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.unscaledDeltaTime;
+            float k = 1f - Mathf.Clamp01(t / duration);
+            musicA.volume = a * k;
+            musicB.volume = b * k;
+            yield return null;
+        }
+        foreach (AudioSource source in new[] { musicA, musicB })
+        {
+            source.Stop();
+            source.clip = null;
+        }
+        fade = null;
+    }
+
     public void PlayMusic(AudioClip clip)
     {
         if (clip == null || clip == CurrentMusic) return;
