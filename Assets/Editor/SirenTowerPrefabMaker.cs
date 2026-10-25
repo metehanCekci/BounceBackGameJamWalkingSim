@@ -88,13 +88,13 @@ public static class SirenTowerPrefabMaker
         GameObject lamp = Decor(rotor, "Lamp", PrimitiveType.Sphere, new Vector3(0f, 0.42f, 0f), Vector3.one * 0.55f, lampMaterial);
 
         // Arka arkaya iki ışık, hafif aşağı bakıp etrafı tarar
-        CreateSpot(rotor, "LightFront", new Vector3(0f, 0.42f, 0f), Quaternion.Euler(12f, 0f, 0f));
-        CreateSpot(rotor, "LightBack", new Vector3(0f, 0.42f, 0f), Quaternion.Euler(12f, 180f, 0f));
+        CreateSpot(rotor, "LightFront", new Vector3(0f, 0.42f, 0f), Quaternion.Euler(12f, 0f, 0f), new Color(1f, 0.08f, 0.04f));
+        CreateSpot(rotor, "LightBack", new Vector3(0f, 0.42f, 0f), Quaternion.Euler(12f, 180f, 0f), new Color(1f, 0.95f, 0.9f));
 
         AlarmSiren alarm = siren.gameObject.AddComponent<AlarmSiren>();
         alarm.rotor = rotor;
         alarm.lamp = lamp.GetComponent<Renderer>();
-        alarm.lampColor = LampColor;
+        alarm.primaryColor = LampColor;
         alarm.sirenSound = AssetDatabase.LoadAssetAtPath<AudioClip>(SirenClipPath);
         if (alarm.sirenSound == null)
             alarm.sirenSound = AssetDatabase.LoadAssetAtPath<AudioClip>(SirenFallbackPath);
@@ -138,14 +138,14 @@ public static class SirenTowerPrefabMaker
         return mat;
     }
 
-    static void CreateSpot(Transform parent, string name, Vector3 localPosition, Quaternion localRotation)
+    static void CreateSpot(Transform parent, string name, Vector3 localPosition, Quaternion localRotation, Color color)
     {
         Transform t = CreateChild(parent, name, localPosition);
         t.localRotation = localRotation;
 
         HDAdditionalLightData hdLight = t.gameObject.AddHDLight(LightType.Spot);
         Light light = t.GetComponent<Light>();
-        light.color = new Color(1f, 0.08f, 0.04f);
+        light.color = color;
         // Gündüz güneşi çok güçlü (100.000 lux): yakında yeri kırmızıya boyayabilmesi için yüksek
         light.lightUnit = UnityEngine.Rendering.LightUnit.Candela;
         light.intensity = 2000000f;
