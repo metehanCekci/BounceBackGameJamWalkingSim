@@ -1940,6 +1940,18 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 8300000, guid: eb5aea018d5379839bf98b36d89874e3, type: 3}
     - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.g
+      value: 0.013710939
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.r
+      value: 0.4811321
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
       propertyPath: lampIdleIntensity
       value: 0.5
       objectReference: {fileID: 0}
@@ -9734,6 +9746,7 @@ MonoBehaviour:
   - voice: {fileID: 11400000, guid: 6a11ba42c744cf04691e3efd22e7a8e8, type: 2}
     text: "Oh, Hay\u0131r!"
     holdTime: 0
+    speedMultiplier: 1
   waitForSubtitles: 1
   runDuration: 1.5
   onFinished:
@@ -16929,6 +16942,18 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 0}
     - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.g
+      value: 0.009827043
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.r
+      value: 0.4716981
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
       propertyPath: lampIdleIntensity
       value: 0.5
       objectReference: {fileID: 0}
@@ -20608,6 +20633,18 @@ PrefabInstance:
     - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
       propertyPath: sirenSound
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.g
+      value: 0.009245284
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.r
+      value: 0.46226418
       objectReference: {fileID: 0}
     - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
       propertyPath: lampIdleIntensity
