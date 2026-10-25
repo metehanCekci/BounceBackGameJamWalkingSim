@@ -31,8 +31,8 @@ public class SubtitleManager : MonoBehaviour
     [Range(0.5f, 1f)] public float dramaticPitch = 0.88f;  // Dramatik satırlarda bip sesi biraz pesleşir
 
     [Header("Ekranda Kalma")]
-    public float holdTimeBase = 1.5f;
-    public float holdTimePerChar = 0.04f;
+    public float holdTimeBase = 0.5f;      // Yazı bitince sonraki satıra geçmeden önce bekleme
+    public float holdTimePerChar = 0f;     // Uzun satırlara eklenen ek bekleme (harf başına)
     public float fadeDuration = 0.2f;
 
     [Header("Ses")]

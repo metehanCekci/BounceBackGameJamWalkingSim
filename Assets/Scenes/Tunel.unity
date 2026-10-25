@@ -1444,6 +1444,34 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: landSounds.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: 'landSounds.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 63ca6996ef76a8f468b08ec283cd4e48, type: 3}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: footstepSounds.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: 'footstepSounds.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 63ca6996ef76a8f468b08ec283cd4e48, type: 3}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: 'footstepSounds.Array.data[1]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 174c264a0af95c84786db072a14dbcec, type: 3}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: 'footstepSounds.Array.data[2]'
+      value: 
+      objectReference: {fileID: 8300000, guid: e0d1c18185723f4418a473d86e5766a4, type: 3}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: 'footstepSounds.Array.data[3]'
+      value: 
+      objectReference: {fileID: 8300000, guid: a47694e312c432d4c90c852764195ee1, type: 3}
     - target: {fileID: 4253647480186626093, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
       propertyPath: m_AllowDynamicResolution
       value: 1
