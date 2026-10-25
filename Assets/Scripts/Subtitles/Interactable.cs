@@ -27,7 +27,8 @@ public class Interactable : MonoBehaviour
     public float highlightBrightness = 2f; // Işıktan bağımsız; 1'in üstü bloom ile parlar
     public float outlineThickness = 0.02f; // Metre
     public bool marker = true;             // Yaklaşınca çuvalın üstünde çıkan ekran işareti
-    public float markerDistance = 12f;     // Bu mesafeden yakında ve çuval görünürken gösterilir
+    public float markerRange = 0f;         // Bu mesafeden yakındayken gösterilir (0: sınırsız, her yerden)
+    public bool markerThroughWalls = true; // Duvar arkasında kalsa da işaret görünür
 
     [Header("Olaylar")]
     public UnityEvent onFinished;
@@ -92,8 +93,8 @@ public class Interactable : MonoBehaviour
             worldMarker.color = highlightColor;
             worldMarker.size = 16f;
             worldMarker.hideWithin = 3f; // Yakında kenar çizgisi yeterli
-            worldMarker.showWithin = markerDistance;
-            worldMarker.requireLineOfSight = true; // Duvar arkasından görünmesin
+            worldMarker.showWithin = markerRange;
+            worldMarker.requireLineOfSight = !markerThroughWalls;
             worldMarker.pointProvider = () =>
             {
                 Bounds b = FocusBounds;
