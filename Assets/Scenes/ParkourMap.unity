@@ -4281,7 +4281,7 @@ MonoBehaviour:
   fadeOutTime: 1.5
   blackTime: 3
   fadeInTime: 2
-  explosionSound: {fileID: 8300000, guid: b1510802c028bb29cbef183598fbc5a1, type: 3}
+  explosionSound: {fileID: 8300000, guid: e7509bfc07e46484ca108f0263f70453, type: 3}
   explosionVolume: 1
 --- !u!1001 &302048550
 PrefabInstance:

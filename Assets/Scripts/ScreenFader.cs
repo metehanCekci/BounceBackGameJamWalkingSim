@@ -96,6 +96,35 @@ public class ScreenFader : MonoBehaviour
             audioSource.PlayOneShot(sound, soundVolume);
         yield return new WaitForSecondsRealtime(blackTime);
 
+        yield return LoadAndReveal(buildIndex, fadeInTime);
+    }
+
+    // Ekranı karart, karanlıkta biraz bekle, sesi çal ve ses BİTİNCE sonraki sahneyi yükle
+    public void TransitionAfterSound(int buildIndex, float fadeOutTime, float delayBeforeSound, AudioClip sound, float soundVolume, float fadeInTime)
+    {
+        if (IsTransitioning) return;
+        if (buildIndex < 0)
+            buildIndex = (SceneManager.GetActiveScene().buildIndex + 1) % SceneManager.sceneCountInBuildSettings;
+        StartCoroutine(AfterSoundRoutine(buildIndex, fadeOutTime, delayBeforeSound, sound, soundVolume, fadeInTime));
+    }
+
+    private IEnumerator AfterSoundRoutine(int buildIndex, float fadeOutTime, float delayBeforeSound, AudioClip sound, float soundVolume, float fadeInTime)
+    {
+        IsTransitioning = true;
+        yield return Fade(1f, fadeOutTime);
+        yield return new WaitForSecondsRealtime(delayBeforeSound);
+
+        if (sound != null)
+        {
+            audioSource.PlayOneShot(sound, soundVolume);
+            yield return new WaitForSecondsRealtime(sound.length);
+        }
+
+        yield return LoadAndReveal(buildIndex, fadeInTime);
+    }
+
+    private IEnumerator LoadAndReveal(int buildIndex, float fadeInTime)
+    {
         if (buildIndex < 0 || buildIndex >= SceneManager.sceneCountInBuildSettings)
         {
             Debug.LogError($"ScreenFader: build listesinde {buildIndex} numaralı sahne yok ({SceneManager.sceneCountInBuildSettings} sahne var). File > Build Profiles > Scene List'e bak.");
