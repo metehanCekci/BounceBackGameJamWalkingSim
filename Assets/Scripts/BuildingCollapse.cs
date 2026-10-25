@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
@@ -76,6 +77,9 @@ public class BuildingCollapse : MonoBehaviour
         Collider playerCollider = player != null ? player.GetComponent<Collider>() : null;
 
         Bounds bounds = GetBounds(building);
+        // Ezilme binanın collider'ına değil kendi şekline bakar: collider'ı olmayan ya da sadece
+        // trigger'ı olan binalar da öldürsün. Döndürülmeden önce binanın kendi ekseninde ölçülür.
+        Bounds localShape = GetLocalBounds(building);
         Vector3 target = fallTowards != null ? fallTowards.position : transform.position;
         Vector3 fallDir = target - bounds.center;
         fallDir.y = 0f;
@@ -135,7 +139,19 @@ public class BuildingCollapse : MonoBehaviour
         if (dustEffect == null && generatedFx)
             ProceduralFx.SpawnDust(pivot, baseArea, 0.5f);
 
-        // 2. Devrilme: eğik halinden başlar, düştükçe hızlanır
+        // 2. Devrilme: eğik halinden başlar, düştükçe hızlanır.
+        // Katı collider'lar düşerken kapalı: açık kalırsa fizik oyuncuyu kenara iter ve ezilmez.
+        // Çarpınca geri açılır, yıkılan bina yolu kapatsın
+        var solidColliders = new List<Collider>();
+        foreach (Collider c in building.GetComponentsInChildren<Collider>())
+        {
+            if (c.enabled && !c.isTrigger)
+            {
+                c.enabled = false;
+                solidColliders.Add(c);
+            }
+        }
+
         float applied = preFallLean;
         t = 0f;
         while (t < fallTime)
@@ -148,7 +164,7 @@ public class BuildingCollapse : MonoBehaviour
             applied = angle;
 
             // Bina oyuncuya değdiyse ezildi: ekran kararır, bölüm baştan
-            if (killPlayer && k > 0.3f && IsCrushing(playerCollider))
+            if (killPlayer && k > 0.3f && IsCrushing(playerCollider, localShape))
             {
                 ProceduralFx.PlayClip(impactSound != null ? impactSound : ProceduralFx.Impact(), player.transform.position, volume);
                 if (cam != null) cam.AddShake(1f, impactShakeBoost);
@@ -160,6 +176,9 @@ public class BuildingCollapse : MonoBehaviour
                 cam.SetFocus(RotatePoint(top, pivot, axis, applied * 0.6f));
             yield return null;
         }
+
+        foreach (Collider c in solidColliders)
+            c.enabled = true;
 
         // 3. Çarpma
         Vector3 impactPoint = RotatePoint(top, pivot, axis, fallAngle);
@@ -201,19 +220,48 @@ public class BuildingCollapse : MonoBehaviour
         onCollapsed.Invoke();
     }
 
-    private bool IsCrushing(Collider playerCollider)
+    private bool IsCrushing(Collider playerCollider, Bounds localShape)
     {
         if (playerCollider == null) return false;
 
-        // Bina transform ile döndürüldü, fizik dünyası bu karede güncel olsun
-        Physics.SyncTransforms();
+        // Oyuncunun ayak, gövde ve baş noktalarından biri dönen binanın içine girdiyse ezildi
         Bounds pb = playerCollider.bounds;
-        foreach (Collider c in Physics.OverlapBox(pb.center, pb.extents * 0.8f, Quaternion.identity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+        float inset = Mathf.Min(0.3f, pb.extents.y * 0.5f);
+        Vector3[] points =
         {
-            if (c.transform.IsChildOf(building))
+            new Vector3(pb.center.x, pb.min.y + inset, pb.center.z),
+            pb.center,
+            new Vector3(pb.center.x, pb.max.y - inset, pb.center.z),
+        };
+        foreach (Vector3 p in points)
+        {
+            if (localShape.Contains(building.InverseTransformPoint(p)))
                 return true;
         }
         return false;
+    }
+
+    // Binanın görünen parçalarının, binanın kendi ekseninde ölçülmüş sınırları
+    private static Bounds GetLocalBounds(Transform root)
+    {
+        Matrix4x4 toRoot = root.worldToLocalMatrix;
+        bool any = false;
+        Bounds result = new Bounds();
+        foreach (MeshFilter filter in root.GetComponentsInChildren<MeshFilter>())
+        {
+            if (filter.sharedMesh == null) continue;
+            Matrix4x4 m = toRoot * filter.transform.localToWorldMatrix;
+            Bounds mb = filter.sharedMesh.bounds;
+            for (int i = 0; i < 8; i++)
+            {
+                Vector3 corner = mb.center + Vector3.Scale(mb.extents, new Vector3(
+                    (i & 1) == 0 ? -1f : 1f, (i & 2) == 0 ? -1f : 1f, (i & 4) == 0 ? -1f : 1f));
+                Vector3 p = m.MultiplyPoint3x4(corner);
+                if (any) result.Encapsulate(p);
+                else { result = new Bounds(p, Vector3.zero); any = true; }
+            }
+        }
+        return result;
     }
 
     private void PlayAt(AudioClip clip, Vector3 position)

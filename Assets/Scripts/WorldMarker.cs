@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Dünyadaki bir noktayı ekranda gösteren işaret; duvar arkasından ve uzaktan da görünür.
-// Çuvallar aranabilirken kendilerine ekler, görev bitince çıkış (BoundaryTrigger) da işaretlenir.
+// Dünyadaki bir noktayı ekranda gösteren işaret. Çuvallar aranabilirken kendilerine ekler
+// (sadece yakındayken ve görünürken), görev bitince çıkış (BoundaryTrigger) da işaretlenir.
 // pointWhenOffscreen açıksa hedef ekran dışındayken ekran kenarında ok olarak durur.
 public class WorldMarker : MonoBehaviour
 {
@@ -15,6 +15,8 @@ public class WorldMarker : MonoBehaviour
     public bool showDistance;
     public bool pointWhenOffscreen;
     public float hideWithin = 3f;                     // Bu kadar yakınken gizlenir, yakında obje zaten görünüyor
+    public float showWithin = 0f;                     // 0 değilse sadece bu mesafeden yakındayken görünür
+    public bool requireLineOfSight;                   // Açıksa arada duvar varken gizlenir
     public Vector3 worldOffset;
 
     // Doluysa hedef nokta bundan alınır (ör. modelin tepesi), yoksa objenin kendisi
@@ -114,6 +116,14 @@ public class WorldMarkerHud : MonoBehaviour
         float distance = Vector3.Distance(cam.transform.position, point);
         if (distance < marker.hideWithin)
             return false;
+        if (marker.showWithin > 0f && distance > marker.showWithin)
+            return false;
+
+        // Kameradan hedefe giderken objenin kendisinden başka bir şeye çarparsa arkasında kalmış demektir
+        if (marker.requireLineOfSight &&
+            Physics.Linecast(cam.transform.position, point, out RaycastHit hit, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) &&
+            !hit.transform.IsChildOf(marker.transform))
+            return false;
 
         Vector3 screen = cam.WorldToScreenPoint(point);
         bool behind = screen.z < 0f;
@@ -146,6 +156,8 @@ public class WorldMarkerHud : MonoBehaviour
         view.root.anchoredPosition = local;
 
         float alpha = Mathf.Clamp01((distance - marker.hideWithin) / FadeDistance);
+        if (marker.showWithin > 0f)
+            alpha *= Mathf.Clamp01((marker.showWithin - distance) / FadeDistance);
         Color color = marker.color;
         color.a *= alpha;
 

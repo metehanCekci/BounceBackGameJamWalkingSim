@@ -98,7 +98,7 @@ public class ScreenFader : MonoBehaviour
         if (buildIndex < 0 || buildIndex >= SceneManager.sceneCountInBuildSettings)
         {
             Debug.LogError($"ScreenFader: build listesinde {buildIndex} numaralı sahne yok ({SceneManager.sceneCountInBuildSettings} sahne var). File > Build Profiles > Scene List'e bak.");
-            yield return Fade(0f, fadeInTime);
+            // Ekran siyah kalır: sahne geçişi yarıda açılıp oyunu ortada bırakmasın
             IsTransitioning = false;
             yield break;
         }

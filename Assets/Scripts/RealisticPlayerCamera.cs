@@ -118,6 +118,7 @@ public class RealisticPlayerCamera : MonoBehaviour
     private float vaultRollSign = 1f;
     private bool hasFocus;
     private Vector3 focusPoint;
+    private float focusSpeedOverride = -1f;
     private float fovOverride = -1f;       // > 0 iken cutscene zoom'u
     private float fovOverrideSpeed = 3f;
 
@@ -259,10 +260,12 @@ public class RealisticPlayerCamera : MonoBehaviour
     }
 
     // Etkileşim sırasında kamera bu noktaya yumuşakça döner, fare girişi kilitli kalır
-    public void SetFocus(Vector3 worldPoint)
+    // speed verilirse bu odak için focusSpeed yerine o kullanılır (düşük = daha yavaş dönüş)
+    public void SetFocus(Vector3 worldPoint, float speed = -1f)
     {
         hasFocus = true;
         focusPoint = worldPoint;
+        focusSpeedOverride = speed;
     }
 
     public void ClearFocus()
@@ -362,7 +365,7 @@ public class RealisticPlayerCamera : MonoBehaviour
             {
                 float targetYaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
                 float targetPitch = -Mathf.Asin(Mathf.Clamp(dir.normalized.y, -1f, 1f)) * Mathf.Rad2Deg;
-                float t = Time.deltaTime * focusSpeed;
+                float t = Time.deltaTime * (focusSpeedOverride > 0f ? focusSpeedOverride : focusSpeed);
                 yaw = Mathf.LerpAngle(yaw, targetYaw, t);
                 lookPitch = Mathf.Lerp(lookPitch, Mathf.Clamp(targetPitch, -maxPitch, maxPitch), t);
             }

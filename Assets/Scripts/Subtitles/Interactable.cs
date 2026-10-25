@@ -25,9 +25,9 @@ public class Interactable : MonoBehaviour
     public bool highlight = true;          // Aranabilirken sarı kenar çizgisi
     public Color highlightColor = new Color(1f, 0.8f, 0.1f);
     public float highlightBrightness = 2f; // Işıktan bağımsız; 1'in üstü bloom ile parlar
-    public float outlineThickness = 0.02f; // Metre, yakındayken
-    public float outlineWidthPerMeter = 0.004f; // Uzaklaştıkça kalınlaşır, ekranda hep birkaç piksel kalsın
-    public bool marker = true;             // Uzaktan ve duvar arkasından görünen ekran işareti
+    public float outlineThickness = 0.02f; // Metre
+    public bool marker = true;             // Yaklaşınca çuvalın üstünde çıkan ekran işareti
+    public float markerDistance = 12f;     // Bu mesafeden yakında ve çuval görünürken gösterilir
 
     [Header("Olaylar")]
     public UnityEvent onFinished;
@@ -92,6 +92,8 @@ public class Interactable : MonoBehaviour
             worldMarker.color = highlightColor;
             worldMarker.size = 16f;
             worldMarker.hideWithin = 3f; // Yakında kenar çizgisi yeterli
+            worldMarker.showWithin = markerDistance;
+            worldMarker.requireLineOfSight = true; // Duvar arkasından görünmesin
             worldMarker.pointProvider = () =>
             {
                 Bounds b = FocusBounds;
@@ -128,15 +130,6 @@ public class Interactable : MonoBehaviour
         bool targeted = PlayerInteractor.Instance != null && PlayerInteractor.Instance.CurrentTarget == this;
         float pulse = targeted ? 1f : Mathf.Lerp(0.5f, 0.9f, (Mathf.Sin(Time.time * 3f) + 1f) * 0.5f);
         outlineMaterial.SetColor("_EmissiveColor", highlightColor * (highlightBrightness * pulse));
-
-        Camera cam = Camera.main;
-        if (cam != null)
-        {
-            float distance = Vector3.Distance(cam.transform.position, FocusBounds.center);
-            float thickness = Mathf.Max(outlineThickness, distance * outlineWidthPerMeter);
-            foreach (Outline o in outlines)
-                FitOutline(o, thickness);
-        }
     }
 
     public void Complete()
