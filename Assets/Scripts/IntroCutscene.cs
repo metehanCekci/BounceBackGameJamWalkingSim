@@ -34,7 +34,7 @@ public class IntroCutscene : MonoBehaviour
 
         // Bantlar siyahın içinde zaten hazır olsun, ekran açılınca orada görünsünler
         if (cinematicBars) CinematicBars.ShowInstant();
-        ScreenFader.FadeIn(fadeDuration);
+        ScreenFader.Instance.FadeIn(fadeDuration);
 
         // Takılan uzun kareler süreyi yemesin
         yield return WaitClamped(delayBeforeLines);

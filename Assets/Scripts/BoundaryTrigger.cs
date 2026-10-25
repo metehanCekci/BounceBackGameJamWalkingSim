@@ -87,9 +87,9 @@ public class BoundaryTrigger : MonoBehaviour
             yield return null;
 
         if (string.IsNullOrEmpty(nextScene))
-            ScreenFader.FadeOut(fadeDuration);
+            ScreenFader.Instance.FadeOut(fadeDuration);
         else
-            ScreenFader.FadeToScene(nextScene, fadeDuration);
+            ScreenFader.Instance.TransitionToScene(nextScene, fadeDuration, fadeDuration);
     }
 
     private IEnumerator PushBack(PlayerMovement player)

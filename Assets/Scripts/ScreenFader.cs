@@ -123,6 +123,23 @@ public class ScreenFader : MonoBehaviour
         IsTransitioning = false;
     }
 
+    // Sahne yüklemeden sadece karart (ör. sonraki sahne henüz yoksa bölüm sonu)
+    public void FadeOut(float duration)
+    {
+        if (IsTransitioning) return;
+        StopAllCoroutines();
+        StartCoroutine(Fade(1f, duration));
+    }
+
+    // Siyahtan başlayarak ekranı aç (ör. giriş cutscene'i). Sahne geçişi zaten açıyorsa karışmaz.
+    public void FadeIn(float duration)
+    {
+        if (IsTransitioning) return;
+        StopAllCoroutines();
+        canvasGroup.alpha = 1f;
+        StartCoroutine(Fade(0f, duration));
+    }
+
     // Oyun duraklatılmış olsa da (timeScale 0) perde çalışsın
     private IEnumerator Fade(float target, float duration)
     {

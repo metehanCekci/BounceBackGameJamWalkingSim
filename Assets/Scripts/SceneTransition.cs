@@ -16,12 +16,12 @@ public class SceneTransition : MonoBehaviour
 
     public void FadeOut()
     {
-        ScreenFader.FadeOut(fadeDuration);
+        ScreenFader.Instance.FadeOut(fadeDuration);
     }
 
     public void FadeIn()
     {
-        ScreenFader.FadeIn(fadeDuration);
+        ScreenFader.Instance.FadeIn(fadeDuration);
     }
 
     private IEnumerator Go()
@@ -35,8 +35,8 @@ public class SceneTransition : MonoBehaviour
         }
 
         if (string.IsNullOrEmpty(nextScene))
-            ScreenFader.FadeOut(fadeDuration);
+            ScreenFader.Instance.FadeOut(fadeDuration);
         else
-            ScreenFader.FadeToScene(nextScene, fadeDuration);
+            ScreenFader.Instance.TransitionToScene(nextScene, fadeDuration, fadeDuration);
     }
 }
