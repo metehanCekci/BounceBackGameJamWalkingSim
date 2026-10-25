@@ -572,7 +572,7 @@ MonoBehaviour:
   volume: 1
   preload: 1
   blackBeforePlay: 0.5
-  videoFadeIn: 5
+  videoFadeIn: 0.1
   backgroundColor: {r: 1, g: 1, b: 1, a: 1}
   playOnStart: 1
   playOnTriggerEnter: 0
