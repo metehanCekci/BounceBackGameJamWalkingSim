@@ -101,6 +101,21 @@ public class AudioManager : MonoBehaviour
             Instance.search.Stop();
     }
 
+    // Müziği ve ortam seslerini anında keser; yeni sahnede aynı parça olsa bile baştan başlar
+    public void StopAll()
+    {
+        if (fade != null)
+        {
+            StopCoroutine(fade);
+            fade = null;
+        }
+        foreach (AudioSource source in new[] { musicA, musicB, search, birdsSource, windSource })
+        {
+            source.Stop();
+            source.clip = null;
+        }
+    }
+
     public void PlayMusic(AudioClip clip)
     {
         if (clip == null || clip == CurrentMusic) return;
