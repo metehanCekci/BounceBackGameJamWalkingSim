@@ -68,6 +68,8 @@ public class ScreenFader : MonoBehaviour
         audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
         audioSource.spatialBlend = 0f;
+        // Dünya susturulduğunda (AudioListener.pause) perdenin sesi yine çalsın
+        audioSource.ignoreListenerPause = true;
     }
 
     void OnDestroy()
@@ -99,19 +101,28 @@ public class ScreenFader : MonoBehaviour
         yield return LoadAndReveal(buildIndex, fadeInTime);
     }
 
-    // Ekranı karart, karanlıkta biraz bekle, sesi çal ve ses BİTİNCE sonraki sahneyi yükle
-    public void TransitionAfterSound(int buildIndex, float fadeOutTime, float delayBeforeSound, AudioClip sound, float soundVolume, float fadeInTime)
+    // Ekranı karart, karanlıkta biraz bekle, sesi çal ve ses BİTİNCE sonraki sahneyi yükle.
+    // silenceWorld: ekran kararınca siren, müzik, adım sesi vb. her şey susar, sadece bu ses duyulur.
+    public void TransitionAfterSound(int buildIndex, float fadeOutTime, float delayBeforeSound, AudioClip sound, float soundVolume, float fadeInTime, bool silenceWorld = false)
     {
         if (IsTransitioning) return;
         if (buildIndex < 0)
             buildIndex = (SceneManager.GetActiveScene().buildIndex + 1) % SceneManager.sceneCountInBuildSettings;
-        StartCoroutine(AfterSoundRoutine(buildIndex, fadeOutTime, delayBeforeSound, sound, soundVolume, fadeInTime));
+        StartCoroutine(AfterSoundRoutine(buildIndex, fadeOutTime, delayBeforeSound, sound, soundVolume, fadeInTime, silenceWorld));
     }
 
-    private IEnumerator AfterSoundRoutine(int buildIndex, float fadeOutTime, float delayBeforeSound, AudioClip sound, float soundVolume, float fadeInTime)
+    private IEnumerator AfterSoundRoutine(int buildIndex, float fadeOutTime, float delayBeforeSound, AudioClip sound, float soundVolume, float fadeInTime, bool silenceWorld)
     {
         IsTransitioning = true;
         yield return Fade(1f, fadeOutTime);
+
+        if (silenceWorld)
+        {
+            // Sahnedeki sesler duraklar (yeni sahneyle birlikte silinir), kalıcı müzik tamamen kesilir
+            AudioListener.pause = true;
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.StopAll();
+        }
         yield return new WaitForSecondsRealtime(delayBeforeSound);
 
         if (sound != null)
@@ -134,6 +145,7 @@ public class ScreenFader : MonoBehaviour
         }
 
         yield return SceneManager.LoadSceneAsync(buildIndex);
+        AudioListener.pause = false;
         yield return new WaitForSecondsRealtime(settleTimeAfterLoad);
         yield return Fade(0f, fadeInTime);
         IsTransitioning = false;

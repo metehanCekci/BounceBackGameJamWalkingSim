@@ -18,6 +18,7 @@ public class SceneTransitionTrigger : MonoBehaviour
     [Header("Ses")]
     public AudioClip explosionSound;      // Karanlıkta çalar; yeni sahne bu ses bitince yüklenir
     [Range(0f, 1f)] public float explosionVolume = 1f;
+    public bool silenceOtherSounds = true; // Ekran kararınca siren, müzik vb. tamamen susar, sadece bu ses duyulur
 
     [Header("Sinematik Giriş")]
     public bool cinematicEntry = true;    // Kararırken bantlar gelir, kamera kilitlenir, karakter kendi kendine içeri yürür
@@ -52,6 +53,6 @@ public class SceneTransitionTrigger : MonoBehaviour
             CinematicBars.Show();
         }
 
-        ScreenFader.Instance.TransitionAfterSound(nextSceneIndex, fadeOutTime, delayBeforeSound, explosionSound, explosionVolume, fadeInTime);
+        ScreenFader.Instance.TransitionAfterSound(nextSceneIndex, fadeOutTime, delayBeforeSound, explosionSound, explosionVolume, fadeInTime, silenceOtherSounds);
     }
 }
