@@ -19,6 +19,8 @@ public class PlayerInputManager : MonoBehaviour
     public bool ScriptedSprint { get; set; }
     public bool IsSprinting => ScriptedSprint || (!InputLocked && rawSprint);
     public bool JumpPressed { get; private set; }
+    // Kapalıysa zıplama tuşu yok sayılır (ör. EndingScene)
+    public bool canJump = true;
     public bool JumpHeld { get; private set; }
 
     private InputAction moveAction;
@@ -88,9 +90,9 @@ public class PlayerInputManager : MonoBehaviour
         IsCrouching = !CrouchLocked && crouchAction.IsPressed();
         rawSprint = sprintAction.IsPressed();
         // FixedUpdate okuyana kadar basışı tut, yüksek FPS'te kaybolmasın
-        if (jumpAction.WasPressedThisFrame() && !InputLocked)
+        if (jumpAction.WasPressedThisFrame() && !InputLocked && canJump)
             JumpPressed = true;
-        JumpHeld = jumpAction.IsPressed();
+        JumpHeld = canJump && jumpAction.IsPressed();
 
         if (lookAction.activeControl != null)
         {
