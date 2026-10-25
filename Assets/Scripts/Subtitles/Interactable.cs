@@ -24,15 +24,26 @@ public class Interactable : MonoBehaviour
     [Header("Vurgu (Outline)")]
     public bool highlight = true;          // Aranabilirken sarı kenar çizgisi
     public Color highlightColor = new Color(1f, 0.8f, 0.1f);
-    public float outlineThickness = 0.02f; // Metre
+    public float highlightBrightness = 2f; // Işıktan bağımsız; 1'in üstü bloom ile parlar
+    public float outlineThickness = 0.02f; // Metre, yakındayken
+    public float outlineWidthPerMeter = 0.004f; // Uzaklaştıkça kalınlaşır, ekranda hep birkaç piksel kalsın
+    public bool marker = true;             // Uzaktan ve duvar arkasından görünen ekran işareti
 
     [Header("Olaylar")]
     public UnityEvent onFinished;
 
     private bool used;
     private Renderer[] renderers;
-    private readonly List<Renderer> outlineRenderers = new List<Renderer>();
+    private readonly List<Outline> outlines = new List<Outline>();
     private Material outlineMaterial;
+    private WorldMarker worldMarker;
+
+    private class Outline
+    {
+        public MeshRenderer renderer;
+        public Transform source;   // Kenar çizgisinin kopyalandığı model parçası
+        public Bounds meshBounds;
+    }
 
     public bool CanInteract =>
         isActiveAndEnabled && !(oneTime && used) && (group == null || group.CanSearch(this));
@@ -74,6 +85,20 @@ public class Interactable : MonoBehaviour
 
         if (highlight)
             CreateOutline();
+
+        if (marker)
+        {
+            worldMarker = gameObject.AddComponent<WorldMarker>();
+            worldMarker.color = highlightColor;
+            worldMarker.size = 16f;
+            worldMarker.hideWithin = 3f; // Yakında kenar çizgisi yeterli
+            worldMarker.pointProvider = () =>
+            {
+                Bounds b = FocusBounds;
+                return new Vector3(b.center.x, b.max.y + 0.35f, b.center.z);
+            };
+            worldMarker.enabled = false;
+        }
     }
 
     void OnDisable()
@@ -89,18 +114,28 @@ public class Interactable : MonoBehaviour
 
     void Update()
     {
+        bool show = CanInteract;
+        if (worldMarker != null && worldMarker.enabled != show)
+            worldMarker.enabled = show;
+
         if (outlineMaterial == null) return;
 
         // Aranabilirken görünür; bakılan obje tam parlak, diğerleri yavaşça nabız gibi atar
-        bool show = CanInteract;
-        foreach (Renderer r in outlineRenderers)
-            r.enabled = show;
+        foreach (Outline o in outlines)
+            o.renderer.enabled = show;
+        if (!show) return;
 
-        if (show)
+        bool targeted = PlayerInteractor.Instance != null && PlayerInteractor.Instance.CurrentTarget == this;
+        float pulse = targeted ? 1f : Mathf.Lerp(0.5f, 0.9f, (Mathf.Sin(Time.time * 3f) + 1f) * 0.5f);
+        outlineMaterial.SetColor("_EmissiveColor", highlightColor * (highlightBrightness * pulse));
+
+        Camera cam = Camera.main;
+        if (cam != null)
         {
-            bool targeted = PlayerInteractor.Instance != null && PlayerInteractor.Instance.CurrentTarget == this;
-            float pulse = targeted ? 1f : Mathf.Lerp(0.45f, 0.8f, (Mathf.Sin(Time.time * 3f) + 1f) * 0.5f);
-            outlineMaterial.SetColor("_UnlitColor", highlightColor * pulse);
+            float distance = Vector3.Distance(cam.transform.position, FocusBounds.center);
+            float thickness = Mathf.Max(outlineThickness, distance * outlineWidthPerMeter);
+            foreach (Outline o in outlines)
+                FitOutline(o, thickness);
         }
     }
 
@@ -127,8 +162,12 @@ public class Interactable : MonoBehaviour
             return;
         }
 
+        // Unlit renk HDRP'de pozlamayla kararır (gündüz neredeyse siyah çıkıyordu);
+        // pozlamadan bağımsız emission kullanıyoruz ki her ışıkta aynı parlaklıkta görünsün
         outlineMaterial = new Material(shader);
-        outlineMaterial.SetColor("_UnlitColor", highlightColor);
+        outlineMaterial.SetColor("_UnlitColor", Color.black);
+        outlineMaterial.SetColor("_EmissiveColor", highlightColor * highlightBrightness);
+        outlineMaterial.SetFloat("_EmissiveExposureWeight", 0f);
         outlineMaterial.SetFloat("_CullMode", (float)CullMode.Front);
         outlineMaterial.SetFloat("_CullModeForward", (float)CullMode.Front);
 
@@ -139,17 +178,8 @@ public class Interactable : MonoBehaviour
             if (mf == null || mf.sharedMesh == null) continue;
 
             Mesh mesh = mf.sharedMesh;
-            Bounds mb = mesh.bounds;
-            Vector3 lossy = r.transform.lossyScale;
-            Vector3 scale = new Vector3(
-                1f + 2f * outlineThickness / Mathf.Max(0.05f, Mathf.Abs(mb.size.x * lossy.x)),
-                1f + 2f * outlineThickness / Mathf.Max(0.05f, Mathf.Abs(mb.size.y * lossy.y)),
-                1f + 2f * outlineThickness / Mathf.Max(0.05f, Mathf.Abs(mb.size.z * lossy.z)));
-
             var go = new GameObject("Outline");
             go.transform.SetParent(r.transform, false);
-            go.transform.localScale = scale;
-            go.transform.localPosition = mb.center - Vector3.Scale(mb.center, scale);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
 
             MeshRenderer mr = go.AddComponent<MeshRenderer>();
@@ -159,7 +189,25 @@ public class Interactable : MonoBehaviour
             mr.sharedMaterials = mats;
             mr.shadowCastingMode = ShadowCastingMode.Off;
             mr.receiveShadows = false;
-            outlineRenderers.Add(mr);
+
+            var outline = new Outline { renderer = mr, source = r.transform, meshBounds = mesh.bounds };
+            FitOutline(outline, outlineThickness);
+            outlines.Add(outline);
         }
+    }
+
+    // Kopyayı her yönde "thickness" metre taşacak kadar büyütür, merkezi modelinkiyle aynı kalır
+    private static void FitOutline(Outline o, float thickness)
+    {
+        Bounds mb = o.meshBounds;
+        Vector3 lossy = o.source.lossyScale;
+        Vector3 scale = new Vector3(
+            1f + 2f * thickness / Mathf.Max(0.05f, Mathf.Abs(mb.size.x * lossy.x)),
+            1f + 2f * thickness / Mathf.Max(0.05f, Mathf.Abs(mb.size.y * lossy.y)),
+            1f + 2f * thickness / Mathf.Max(0.05f, Mathf.Abs(mb.size.z * lossy.z)));
+
+        Transform t = o.renderer.transform;
+        t.localScale = scale;
+        t.localPosition = mb.center - Vector3.Scale(mb.center, scale);
     }
 }

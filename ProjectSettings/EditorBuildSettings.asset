@@ -6,13 +6,19 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 8124e5870f4fd4c779e7a5f994e84ad1
+    path: "Assets/Scenes/MainMen\u0131.unity"
+    guid: 49fa72bea5f416367a5040d5106a73b2
+  - enabled: 1
+    path: Assets/Scenes/Scene1.unity
+    guid: 9458725144a38af4d972da7821de1825
   - enabled: 1
     path: Assets/Scenes/ParkourMap.unity
     guid: e7e9239cebdd63a00a89f0f1ca2b58ac
   - enabled: 1
     path: Assets/Scenes/ParkourMapReverse.unity
-    guid: 2c227106ca45df996bd92673f407f266
+    guid: e6a51fe7832d99d2cacd044d118b564e
+  - enabled: 1
+    path: Assets/Scenes/EndingScene.unity
+    guid: c950f28ca788a0274bd6c94f9bc07f3c
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 35845fe01580c41289b024647b1d1c53, type: 3}

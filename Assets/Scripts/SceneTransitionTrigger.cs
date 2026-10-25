@@ -6,7 +6,8 @@ using UnityEngine;
 public class SceneTransitionTrigger : MonoBehaviour
 {
     [Header("Sahne")]
-    public string nextSceneName = "ParkourMapReverse"; // Build listesinde olmalı
+    [Tooltip("Build listesindeki sıra. -1: bu sahneden sonraki sahne.")]
+    public int nextSceneIndex = ScreenFader.NextScene;
 
     [Header("Kararma")]
     public float fadeOutTime = 1.5f; // Ekranın kararma süresi
@@ -31,6 +32,6 @@ public class SceneTransitionTrigger : MonoBehaviour
         if (other.GetComponentInParent<PlayerMovement>() == null) return;
 
         triggered = true;
-        ScreenFader.Instance.TransitionToScene(nextSceneName, fadeOutTime, fadeInTime, explosionSound, explosionVolume, blackTime);
+        ScreenFader.Instance.TransitionToScene(nextSceneIndex, fadeOutTime, fadeInTime, explosionSound, explosionVolume, blackTime);
     }
 }

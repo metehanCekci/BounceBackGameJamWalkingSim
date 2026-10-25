@@ -13,11 +13,17 @@ public class BoundaryTrigger : MonoBehaviour
     public bool blocking = true;           // Kapalıyken geri iter, açıkken geçişe izin verir
 
     [Header("Engel Açıkken Girince")]
-    public string nextScene;               // Doluysa ekran kararır ve bu sahne yüklenir (boşsa sadece kararır)
+    public bool loadScene = true;          // Kapalıysa sahne yüklenmez, ekran sadece kararır
+    [Tooltip("Build listesindeki sıra. -1: bu sahneden sonraki sahne.")]
+    public int nextSceneIndex = ScreenFader.NextScene;
     public bool fadeOutWhenOpen = true;    // Kapalıysa sadece aşağıdaki olay çalışır
     public float fadeDuration = 1.5f;
     [Range(0.1f, 1f)] public float exitWalkSpeed = 0.4f; // Kararırken karakter kendi kendine yavaşça yürür
     public UnityEvent onEnterWhenOpen;
+
+    [Header("Yol Gösterme")]
+    public bool markWhenOpen = true;       // Engel açılınca oyuncu nereye gideceğini ekranda görsün
+    public string markerLabel = "";        // İşaretin altındaki yazı (ör. "Eve dön"); mesafe her zaman yazar
 
     [Header("Satırlar (her birinde ses ve metin)")]
     public SubtitleLine[] lines = { new SubtitleLine("I shouldn't go back there.") };
@@ -31,6 +37,7 @@ public class BoundaryTrigger : MonoBehaviour
 
     private bool busy;
     private bool openTriggered;
+    private WorldMarker marker;
 
     void Reset()
     {
@@ -42,11 +49,32 @@ public class BoundaryTrigger : MonoBehaviour
     {
         blocking = false;
         openTriggered = false;
+        if (markWhenOpen)
+            ShowMarker(true);
     }
 
     public void Close()
     {
         blocking = true;
+        ShowMarker(false);
+    }
+
+    private void ShowMarker(bool show)
+    {
+        if (marker == null)
+        {
+            if (!show) return;
+            Collider area = GetComponent<Collider>();
+            marker = gameObject.AddComponent<WorldMarker>();
+            marker.color = new Color(0.95f, 0.95f, 0.95f);
+            marker.size = 22f;
+            marker.showDistance = true;
+            marker.pointWhenOffscreen = true; // Arkada kalsa bile ekran kenarında ok gösterir
+            marker.hideWithin = 0f;
+            marker.pointProvider = () => area.bounds.center;
+        }
+        marker.label = markerLabel;
+        marker.enabled = show;
     }
 
     void OnTriggerEnter(Collider other)
@@ -64,6 +92,7 @@ public class BoundaryTrigger : MonoBehaviour
         {
             // Açıkken olay bir kez çalışır, sahne geçişi gibi şeyler iki kere tetiklenmesin
             openTriggered = true;
+            ShowMarker(false);
             onEnterWhenOpen.Invoke();
             if (fadeOutWhenOpen)
                 StartCoroutine(FadeAndLoad(player));
@@ -86,10 +115,10 @@ public class BoundaryTrigger : MonoBehaviour
         while (Subtitles.IsPlaying)
             yield return null;
 
-        if (string.IsNullOrEmpty(nextScene))
-            ScreenFader.Instance.FadeOut(fadeDuration);
+        if (loadScene)
+            ScreenFader.Instance.TransitionToScene(nextSceneIndex, fadeDuration, fadeDuration);
         else
-            ScreenFader.Instance.TransitionToScene(nextScene, fadeDuration, fadeDuration);
+            ScreenFader.Instance.FadeOut(fadeDuration);
     }
 
     private IEnumerator PushBack(PlayerMovement player)

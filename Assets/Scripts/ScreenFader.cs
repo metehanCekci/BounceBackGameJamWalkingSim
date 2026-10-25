@@ -23,6 +23,9 @@ public class ScreenFader : MonoBehaviour
     // Yeni sahnenin ilk kareleri (ışık pozlaması, shader yüklemesi) karanlıkta geçsin
     private const float settleTimeAfterLoad = 0.3f;
 
+    // Sahne alanlarında varsayılan: build listesinde şu anki sahneden sonraki sahne
+    public const int NextScene = -1;
+
     public bool IsTransitioning { get; private set; }
 
     // Sayaç gibi şeyler perdeyi oluşturmadan geçiş sürüyor mu diye bakabilsin
@@ -73,14 +76,17 @@ public class ScreenFader : MonoBehaviour
             instance = null;
     }
 
-    // Ekranı karart, karanlıkta sesi çal ve bekle, sonraki sahneyi yükle, orada ekranı aç
-    public void TransitionToScene(string sceneName, float fadeOutTime, float fadeInTime, AudioClip sound = null, float soundVolume = 1f, float blackTime = 0f)
+    // Ekranı karart, karanlıkta sesi çal ve bekle, sonraki sahneyi yükle, orada ekranı aç.
+    // buildIndex: File > Build Profiles > Scene List'teki sıra; NextScene (-1) şu anki sahneden sonrakini yükler.
+    public void TransitionToScene(int buildIndex, float fadeOutTime, float fadeInTime, AudioClip sound = null, float soundVolume = 1f, float blackTime = 0f)
     {
         if (IsTransitioning) return;
-        StartCoroutine(TransitionRoutine(sceneName, fadeOutTime, fadeInTime, sound, soundVolume, blackTime));
+        if (buildIndex < 0)
+            buildIndex = SceneManager.GetActiveScene().buildIndex + 1;
+        StartCoroutine(TransitionRoutine(buildIndex, fadeOutTime, fadeInTime, sound, soundVolume, blackTime));
     }
 
-    private IEnumerator TransitionRoutine(string sceneName, float fadeOutTime, float fadeInTime, AudioClip sound, float soundVolume, float blackTime)
+    private IEnumerator TransitionRoutine(int buildIndex, float fadeOutTime, float fadeInTime, AudioClip sound, float soundVolume, float blackTime)
     {
         IsTransitioning = true;
         yield return Fade(1f, fadeOutTime);
@@ -89,15 +95,15 @@ public class ScreenFader : MonoBehaviour
             audioSource.PlayOneShot(sound, soundVolume);
         yield return new WaitForSecondsRealtime(blackTime);
 
-        if (!Application.CanStreamedLevelBeLoaded(sceneName))
+        if (buildIndex < 0 || buildIndex >= SceneManager.sceneCountInBuildSettings)
         {
-            Debug.LogError($"ScreenFader: '{sceneName}' sahnesi build listesinde yok. File > Build Profiles > Scene List'e ekle.");
+            Debug.LogError($"ScreenFader: build listesinde {buildIndex} numaralı sahne yok ({SceneManager.sceneCountInBuildSettings} sahne var). File > Build Profiles > Scene List'e bak.");
             yield return Fade(0f, fadeInTime);
             IsTransitioning = false;
             yield break;
         }
 
-        yield return SceneManager.LoadSceneAsync(sceneName);
+        yield return SceneManager.LoadSceneAsync(buildIndex);
         yield return new WaitForSecondsRealtime(settleTimeAfterLoad);
         yield return Fade(0f, fadeInTime);
         IsTransitioning = false;

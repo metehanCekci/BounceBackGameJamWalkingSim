@@ -45,7 +45,7 @@ public class BombTimer : MonoBehaviour
         TimeLeft = 0f;
         exploding = true;
         if (reloadScene || player == null)
-            ScreenFader.Instance.TransitionToScene(SceneManager.GetActiveScene().name, 0f, fadeInTime, explosionSound, explosionVolume, blackTime);
+            ScreenFader.Instance.TransitionToScene(SceneManager.GetActiveScene().buildIndex, 0f, fadeInTime, explosionSound, explosionVolume, blackTime);
         else
             ScreenFader.Instance.CutToBlack(Respawn, blackTime, fadeInTime, explosionSound, explosionVolume);
     }

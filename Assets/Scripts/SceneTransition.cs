@@ -5,7 +5,9 @@ using UnityEngine;
 // Olaya bu objeyi sürükleyip LoadNextScene, FadeOut ya da FadeIn seç.
 public class SceneTransition : MonoBehaviour
 {
-    public string nextScene;               // Boşsa sadece siyaha kararır
+    public bool loadScene = true;          // Kapalıysa sadece siyaha kararır
+    [Tooltip("Build listesindeki sıra. -1: bu sahneden sonraki sahne.")]
+    public int nextSceneIndex = ScreenFader.NextScene;
     public float fadeDuration = 1.5f;
     public bool waitForSubtitles = true;   // Önce o an konuşulan bitsin
 
@@ -34,9 +36,9 @@ public class SceneTransition : MonoBehaviour
                 yield return null;
         }
 
-        if (string.IsNullOrEmpty(nextScene))
-            ScreenFader.Instance.FadeOut(fadeDuration);
+        if (loadScene)
+            ScreenFader.Instance.TransitionToScene(nextSceneIndex, fadeDuration, fadeDuration);
         else
-            ScreenFader.Instance.TransitionToScene(nextScene, fadeDuration, fadeDuration);
+            ScreenFader.Instance.FadeOut(fadeDuration);
     }
 }
