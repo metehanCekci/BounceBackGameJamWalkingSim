@@ -32,6 +32,7 @@ public class SirenCutscene : MonoBehaviour
     public bool waitForSubtitles = true;   // Konuşma bitmeden koşmaya başlama
 
     [Header("Yön (sirenden sonra kamera buna döner, karakter buraya koşar)")]
+    public bool autoGuide = true;          // Guide Target boşsa yeşil/kırmızı sirenler ve yol işaretleri otomatik kurulur (ParkourGuide)
     public Transform guideTarget;          // Ör. yolun sonundaki yeşil siren
     public float guideZoomFOV = 40f;
     public float guideTurnSpeed = 2.5f;    // Arkadan öne dönüş; düşük = daha yavaş
@@ -46,6 +47,9 @@ public class SirenCutscene : MonoBehaviour
 
     void Awake()
     {
+        if (autoGuide && guideTarget == null)
+            ParkourGuide.Apply(this);
+
         if (!controlSirens) return;
 
         // Diğer objelerin Start'ından önce: sirenler ve sayaçlar kendiliğinden başlamasın
