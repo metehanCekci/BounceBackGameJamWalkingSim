@@ -9,6 +9,9 @@ using UnityEngine.Serialization;
 [RequireComponent(typeof(AudioSource))]
 public class AlarmSiren : MonoBehaviour
 {
+    [Header("Başlangıç")]
+    public bool startActive = true;          // Kapalıysa siren sessiz bekler, Activate() ile başlar (ör. cutscene)
+
     [Header("Dönen Işık")]
     public Transform rotor;                  // Spot ışıklarının ve hoparlörün bağlı olduğu dönen parça
     public float rotationSpeed = 120f;       // Derece/sn
@@ -34,6 +37,8 @@ public class AlarmSiren : MonoBehaviour
     [Range(0f, 1f)] public float facingBoost = 0.3f;  // Hoparlör sana dönünce ses ne kadar kabarır
 
     private static readonly int EmissiveColorId = Shader.PropertyToID("_EmissiveColor");
+
+    public bool IsActive { get; private set; }
 
     private AudioSource source;
     private MaterialPropertyBlock block;
@@ -85,6 +90,15 @@ public class AlarmSiren : MonoBehaviour
             secondaryTint = CreateTintVolume("SirenTint_Secondary", true, out secondaryAdjustments);
         }
 
+        if (startActive)
+            Activate();
+    }
+
+    // Sireni, dönen ışıkları ve ekran rengini başlatır
+    public void Activate()
+    {
+        if (IsActive) return;
+        IsActive = true;
         if (source.clip != null)
             source.Play();
     }
@@ -100,6 +114,8 @@ public class AlarmSiren : MonoBehaviour
 
     void Update()
     {
+        if (!IsActive) return;
+
         if (rotor != null)
             rotor.Rotate(0f, rotationSpeed * Time.deltaTime, 0f, Space.World);
 

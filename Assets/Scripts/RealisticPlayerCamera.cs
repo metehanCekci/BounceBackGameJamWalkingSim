@@ -112,11 +112,20 @@ public class RealisticPlayerCamera : MonoBehaviour
     private float baseFOV;
     private float shakeTrauma;
     private float shakeSeed;
+    private float shakeBoost = 1f;          // Dışarıdan gelen büyük sarsıntılarda (bina, patlama) şiddet çarpanı
     private float vaultPitchOffset;
     private float vaultRollOffset;
     private float vaultRollSign = 1f;
     private bool hasFocus;
     private Vector3 focusPoint;
+    private float fovOverride = -1f;       // > 0 iken cutscene zoom'u
+    private float fovOverrideSpeed = 3f;
+
+    // Sırtüstü düşme pozu (0 = ayakta, 1 = yerde gökyüzüne bakıyor), PlayerKnockdown yönetir
+    private float knockdownAmount;
+    private const float KnockdownEyeHeight = -0.7f;  // Yerdeyken kameranın yerel yüksekliği (ayaklara yakın)
+    private const float KnockdownPitch = -70f;       // Gökyüzüne bakış
+    private const float KnockdownRoll = 8f;
 
     void Start()
     {
@@ -261,6 +270,41 @@ public class RealisticPlayerCamera : MonoBehaviour
         hasFocus = false;
     }
 
+    // Işınlanma sonrası bakışı anında ayarla (yumuşak geçiş yok)
+    public void SnapLook(float yawDegrees, float pitchDegrees)
+    {
+        yaw = yawDegrees;
+        lookPitch = Mathf.Clamp(pitchDegrees, -maxPitch, maxPitch);
+        currentLookDelta = Vector2.zero;
+        if (playerBody != null)
+            playerBody.rotation = Quaternion.Euler(0f, yaw, 0f);
+    }
+
+    // Cutscene zoom'u: FOV verilen değere yumuşakça gider (küçük FOV = yakınlaşma)
+    public void SetFovOverride(float fov, float speed = 3f)
+    {
+        fovOverride = fov;
+        fovOverrideSpeed = speed;
+    }
+
+    public void ClearFovOverride()
+    {
+        fovOverride = -1f;
+    }
+
+    // Dışarıdan sarsıntı (ör. bina yıkılması, patlama). amount 0-1 arası, üst üste eklenir.
+    // boost: normal sarsıntının kaç katı sert olsun (sarsıntı bitince 1'e döner)
+    public void AddShake(float amount, float boost = 1f)
+    {
+        shakeTrauma = Mathf.Clamp01(shakeTrauma + amount);
+        shakeBoost = Mathf.Max(shakeBoost, boost);
+    }
+
+    public void SetKnockdown(float amount)
+    {
+        knockdownAmount = Mathf.Clamp01(amount);
+    }
+
     private void UpdateSprings()
     {
         float dt = Time.deltaTime;
@@ -288,6 +332,8 @@ public class RealisticPlayerCamera : MonoBehaviour
 
         fovPunch = Mathf.Lerp(fovPunch, 0f, dt * 8f);
         shakeTrauma = Mathf.Max(0f, shakeTrauma - dt * shakeDecay);
+        if (shakeTrauma <= 0f)
+            shakeBoost = 1f;
     }
 
     private void StepSpring(ref float value, ref float velocity, float dt)
@@ -334,7 +380,14 @@ public class RealisticPlayerCamera : MonoBehaviour
         if (!playerMovement.IsGrounded && playerRb.linearVelocity.y < 0f)
             targetFOV += fallFOVBoost * Mathf.Clamp01(-playerRb.linearVelocity.y / fallFOVMaxSpeed);
 
-        baseFOV = Mathf.Lerp(baseFOV, targetFOV, Time.deltaTime * fovSmoothness);
+        float smoothness = fovSmoothness;
+        if (fovOverride > 0f)
+        {
+            targetFOV = fovOverride;
+            smoothness = fovOverrideSpeed;
+        }
+
+        baseFOV = Mathf.Lerp(baseFOV, targetFOV, Time.deltaTime * smoothness);
         cam.fieldOfView = baseFOV + fovPunch;
     }
 
@@ -391,7 +444,7 @@ public class RealisticPlayerCamera : MonoBehaviour
         }
 
         // 4. Sarsıntı (trauma karesi ile: küçük değerlerde neredeyse hissedilmez, büyüklerde sert)
-        float shake = shakeTrauma * shakeTrauma;
+        float shake = shakeTrauma * shakeTrauma * shakeBoost;
         float t = Time.time * shakeFrequency;
         float shakePitch = (Mathf.PerlinNoise(shakeSeed, t) * 2f - 1f) * shakeMaxAngle * shake;
         float shakeYaw = (Mathf.PerlinNoise(shakeSeed + 1f, t) * 2f - 1f) * shakeMaxAngle * shake;
@@ -399,6 +452,7 @@ public class RealisticPlayerCamera : MonoBehaviour
         newPos.x += (Mathf.PerlinNoise(shakeSeed + 3f, t) * 2f - 1f) * shakeMaxOffset * shake;
 
         newPos.y += springPosY;
+        newPos.y = Mathf.Lerp(newPos.y, KnockdownEyeHeight, knockdownAmount);
         transform.localPosition = newPos;
 
         // 5. Yana Yatma (Tilt)
@@ -406,7 +460,9 @@ public class RealisticPlayerCamera : MonoBehaviour
         currentTilt = Mathf.Lerp(currentTilt, targetTilt, Time.deltaTime * tiltSmooth);
 
         float finalPitch = Mathf.Clamp(lookPitch + springPitch + airPitch + shakePitch + vaultPitchOffset, -maxPitch - 10f, maxPitch + 10f);
-        transform.localRotation = Quaternion.Euler(finalPitch, shakeYaw, currentTilt + springRoll + shakeRoll + vaultRollOffset);
+        finalPitch = Mathf.Lerp(finalPitch, KnockdownPitch, knockdownAmount);
+        float finalRoll = currentTilt + springRoll + shakeRoll + vaultRollOffset + KnockdownRoll * knockdownAmount;
+        transform.localRotation = Quaternion.Euler(finalPitch, shakeYaw, finalRoll);
     }
 
     private void PlayDynamicFootstep(bool isCrouch, bool isSprint)

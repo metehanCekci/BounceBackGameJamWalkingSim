@@ -11,7 +11,9 @@ public class PlayerInputManager : MonoBehaviour
     public Vector2 LookInput => InputLocked ? Vector2.zero : rawLook;
     public bool IsGamepad { get; private set; }
     public bool IsCrouching { get; private set; }
-    public bool IsSprinting => !InputLocked && rawSprint;
+    // Doluysa karakter cutscene'de koşar
+    public bool ScriptedSprint { get; set; }
+    public bool IsSprinting => ScriptedSprint || (!InputLocked && rawSprint);
     public bool JumpPressed { get; private set; }
     public bool JumpHeld { get; private set; }
 
