@@ -152,7 +152,7 @@ public class BuildingCollapse : MonoBehaviour
             {
                 ProceduralFx.PlayClip(impactSound != null ? impactSound : ProceduralFx.Impact(), player.transform.position, volume);
                 if (cam != null) cam.AddShake(1f, impactShakeBoost);
-                ScreenFader.Instance.TransitionToScene(SceneManager.GetActiveScene().name, deathFadeOut, deathFadeIn);
+                ScreenFader.Instance.TransitionToScene(SceneManager.GetActiveScene().buildIndex, deathFadeOut, deathFadeIn);
                 yield break;
             }
 

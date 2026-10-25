@@ -4797,7 +4797,7 @@ MonoBehaviour:
   maxSlopeAngle: 50
   crouchHeightRatio: 0.65
   crouchTransitionSpeed: 6
-  jumpHeight: 1.4
+  jumpHeight: 0.6
   coyoteTime: 0.12
   jumpBufferTime: 0.12
   airControl: 0.06
@@ -14896,12 +14896,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoundaryTrigger
   blocking: 1
-  nextScene: 2
+  loadScene: 1
+  nextSceneIndex: -1
   fadeOutWhenOpen: 1
   fadeDuration: 1.5
+  exitWalkSpeed: 0.4
   onEnterWhenOpen:
     m_PersistentCalls:
       m_Calls: []
+  markWhenOpen: 1
+  markerLabel: 
   lines:
   - voice: {fileID: 11400000, guid: 6a11ba42c744cf04691e3efd22e7a8e8, type: 2}
     text: "Daha yeni geldim. \xD6nce yiyecek bir\u015Feyler bulmal\u0131y\u0131m."
