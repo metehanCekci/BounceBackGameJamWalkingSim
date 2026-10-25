@@ -5,7 +5,9 @@ public class PlayerInputManager : MonoBehaviour
 {
     // Kilitliyken (ör. E basılı tutulurken) hareket, bakış, koşu ve zıplama girişi yok sayılır
     public bool InputLocked { get; set; }
-    public Vector2 MoveInput => InputLocked ? Vector2.zero : rawMove;
+    // Doluysa karakter oyuncu yerine bu girişle yürür (cutscene'lerde otomatik yürüme)
+    public Vector2? ScriptedMove { get; set; }
+    public Vector2 MoveInput => ScriptedMove ?? (InputLocked ? Vector2.zero : rawMove);
     public Vector2 LookInput => InputLocked ? Vector2.zero : rawLook;
     public bool IsGamepad { get; private set; }
     public bool IsCrouching { get; private set; }

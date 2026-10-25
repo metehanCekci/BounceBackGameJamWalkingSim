@@ -109,18 +109,35 @@ public class SubtitleManager : MonoBehaviour
             runner = null;
         }
         canvasGroup.alpha = 0f;
+        ClearText();
     }
 
     private IEnumerator PlayQueue()
     {
-        yield return Fade(1f);
+        // Kutu kapanırken yeni satır gelirse tekrar açılıp onu da oynat
+        do
+        {
+            // Önceki konuşmanın yazısı kutu açılırken bir anlığına görünmesin
+            ClearText();
+            yield return Fade(1f);
 
-        while (queue.Count > 0)
-            yield return PlayLine(queue.Dequeue());
+            while (queue.Count > 0)
+                yield return PlayLine(queue.Dequeue());
 
-        yield return Fade(0f);
+            yield return Fade(0f);
+        }
+        while (queue.Count > 0);
+
+        ClearText();
         runner = null;
         OnQueueFinished?.Invoke();
+    }
+
+    private void ClearText()
+    {
+        bodyText.text = string.Empty;
+        speakerText.gameObject.SetActive(false);
+        RefreshLayout();
     }
 
     private IEnumerator PlayLine(SubtitleLine line)
