@@ -3,7 +3,8 @@ using UnityEngine;
 using UnityEngine.Events;
 
 // Parkur sahnesi girişi: ekran açılırken karakter yavaşça yürür, bir süre sonra siren çalmaya başlar,
-// karakter durur ve kamera sirene dönüp yakınlaşır, sonra karakter o yöne koşmaya başlar ve kontrol oyuncuya geçer.
+// karakter durur ve kamera (kırmızı) sirene dönüp yakınlaşır. Guide Target varsa kamera sonra ona (yeşil siren) döner,
+// karakter o yöne koşmaya başlar ve kontrol oyuncuya geçer. Guide Target yoksa bakılan sirene doğru koşar.
 // Sahnedeki sirenler ve bomba sayaçları bu cutscene sireni başlatana kadar bekletilir.
 public class SirenCutscene : MonoBehaviour
 {
@@ -29,6 +30,13 @@ public class SirenCutscene : MonoBehaviour
     [Header("Satırlar (odak sırasında, her birinde ses ve metin)")]
     public SubtitleLine[] lines;
     public bool waitForSubtitles = true;   // Konuşma bitmeden koşmaya başlama
+
+    [Header("Yön (sirenden sonra kamera buna döner, karakter buraya koşar)")]
+    public Transform guideTarget;          // Ör. yolun sonundaki yeşil siren
+    public float guideZoomFOV = 40f;
+    public float guideTurnSpeed = 2.5f;    // Arkadan öne dönüş; düşük = daha yavaş
+    public float guideDuration = 2.5f;
+    public SubtitleLine[] guideLines;
 
     [Header("Koşma")]
     public float runDuration = 1.5f;       // Kontrol verilmeden önce kendiliğinden koşma süresi
@@ -75,16 +83,19 @@ public class SirenCutscene : MonoBehaviour
         if (lines != null && lines.Length > 0)
             Subtitles.Say(lines);
 
-        float t = 0f;
-        while (t < focusDuration || (waitForSubtitles && Subtitles.IsPlaying))
+        yield return Focus(cam, target, focusDuration, -1f);
+
+        // 4. Kamera koşulacak yöne (yeşil sirene) döner
+        if (guideTarget != null)
         {
-            if (cam != null && target != null)
-                cam.SetFocus(target.position);
-            t += Mathf.Min(Time.deltaTime, 1f / 30f);
-            yield return null;
+            if (cam != null)
+                cam.SetFovOverride(guideZoomFOV, zoomSpeed);
+            if (guideLines != null && guideLines.Length > 0)
+                Subtitles.Say(guideLines);
+            yield return Focus(cam, guideTarget, guideDuration, guideTurnSpeed);
         }
 
-        // 4. Zoom açılır, karakter sirene doğru koşmaya başlar
+        // 5. Zoom açılır, karakter baktığı yöne koşmaya başlar
         if (cam != null)
         {
             cam.ClearFovOverride();
@@ -98,7 +109,7 @@ public class SirenCutscene : MonoBehaviour
 
         yield return WaitClamped(runDuration);
 
-        // 5. Kontrol oyuncuda
+        // 6. Kontrol oyuncuda
         if (input != null)
         {
             input.ScriptedMove = null;
@@ -119,6 +130,18 @@ public class SirenCutscene : MonoBehaviour
                 timer.StartTimer();
         }
         onSirenStart.Invoke();
+    }
+
+    private IEnumerator Focus(RealisticPlayerCamera cam, Transform target, float duration, float turnSpeed)
+    {
+        float t = 0f;
+        while (t < duration || (waitForSubtitles && Subtitles.IsPlaying))
+        {
+            if (cam != null && target != null)
+                cam.SetFocus(target.position, turnSpeed);
+            t += Mathf.Min(Time.deltaTime, 1f / 30f);
+            yield return null;
+        }
     }
 
     private static Transform FindNearestSiren(RealisticPlayerCamera cam)

@@ -48,6 +48,9 @@ public class CinematicBars : MonoBehaviour
         }
     }
 
+    // Bir cutscene bantları istemiş mi (ör. yol işaretleri bu sırada gizlenir)
+    public static bool IsShowing => instance != null && instance.requests > 0;
+
     public static void Show()
     {
         if (instance != null)

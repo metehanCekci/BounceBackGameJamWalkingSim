@@ -37,6 +37,7 @@ public class AlarmSiren : MonoBehaviour
     [Range(0f, 1f)] public float facingBoost = 0.3f;  // Hoparlör sana dönünce ses ne kadar kabarır
 
     private static readonly int EmissiveColorId = Shader.PropertyToID("_EmissiveColor");
+    private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
     public bool IsActive { get; private set; }
 
@@ -90,6 +91,9 @@ public class AlarmSiren : MonoBehaviour
             secondaryTint = CreateTintVolume("SirenTint_Secondary", true, out secondaryAdjustments);
         }
 
+        // Siren başlamadan da lamba kendi renginde dursun: ortak malzemenin kırmızısı yeşil sirende görünmesin
+        SetLamp(primaryColor * lampIdleIntensity);
+
         if (startActive)
             Activate();
     }
@@ -137,11 +141,8 @@ public class AlarmSiren : MonoBehaviour
         {
             float frontFlash = Mathf.Pow(front, flashSharpness);
             float backFlash = Mathf.Pow(back, flashSharpness);
-            Color emission = primaryColor * Mathf.Lerp(lampIdleIntensity, lampFlashIntensity, frontFlash)
-                + secondaryColor * (lampFlashIntensity * backFlash);
-            lamp.GetPropertyBlock(block);
-            block.SetColor(EmissiveColorId, emission);
-            lamp.SetPropertyBlock(block);
+            SetLamp(primaryColor * Mathf.Lerp(lampIdleIntensity, lampFlashIntensity, frontFlash)
+                + secondaryColor * (lampFlashIntensity * backFlash));
         }
 
         if (primaryTint != null)
@@ -153,6 +154,15 @@ public class AlarmSiren : MonoBehaviour
             primaryTint.weight = Mathf.Pow(front, tintSharpness);
             secondaryTint.weight = Mathf.Pow(back, tintSharpness);
         }
+    }
+
+    private void SetLamp(Color emission)
+    {
+        if (lamp == null) return;
+        lamp.GetPropertyBlock(block);
+        block.SetColor(BaseColorId, primaryColor);
+        block.SetColor(EmissiveColorId, emission);
+        lamp.SetPropertyBlock(block);
     }
 
     private Volume CreateTintVolume(string name, bool brighten, out ColorAdjustments adjustments)

@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: d059e7dc3310da543bbeafc5b9c4b16c
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 303480
+  packageName: Zap VFX - HDRP
+  packageVersion: 1.0.0
+  assetPath: Assets/Vefects/Zap VFX HDRP/_ Extra/Shaders/SH_Vefects_Extra_Grid_01_HDRP.shader
+  uploadId: 712901
