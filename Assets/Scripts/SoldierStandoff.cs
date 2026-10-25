@@ -80,7 +80,7 @@ public class SoldierStandoff : MonoBehaviour
     [TextArea] public string[] haltReplies;
     public SubtitleLine[] comeLines;       // Biraz sonra tekrar gelmesini söyler
     public float[] haltDistances = { 12f, 7.5f, 4f }; // Askere bu mesafelere gelince "dur" der (büyükten küçüğe)
-    public float haltDuration = 3f;        // Ne kadar durması gerektiği
+    public float haltPauseAfterTalk = 0.5f; // "Dur" konuşması bittikten sonra "gel" demeden önce bekleme
     public float disobeyRate = 0.5f;       // "Dur" denince yürümeye devam ederse saniyede gerginlik artışı
 
     [Header("Yolda Sohbet (askeri dinleyip yavaş gelen oyuncunun ödülü)")]
@@ -504,6 +504,9 @@ public class SoldierStandoff : MonoBehaviour
     {
         if (halting)
         {
+            // Konuşma sürdükçe bekler, bitince kısa bir duraksamayla "gel" der
+            if (Subtitles.IsPlaying)
+                haltUntil = Time.time + haltPauseAfterTalk;
             if (Time.time < haltUntil) return;
 
             halting = false;
@@ -517,7 +520,7 @@ public class SoldierStandoff : MonoBehaviour
         if (DistanceToSoldier() <= hugDistance + 0.5f) return;
 
         halting = true;
-        haltUntil = Time.time + haltDuration;
+        haltUntil = Time.time + haltPauseAfterTalk;
         int i = haltIndex;
         SayNext(haltLines, ref haltIndex, true, soldierVoice);
         ChildSay(Reply(haltReplies, i), true);
@@ -617,28 +620,37 @@ public class SoldierStandoff : MonoBehaviour
         input.ScriptedMove = new Vector2(0f, 1f);
         input.ScriptedSprint = true;
 
-        float t = 0f;
-        while (DistanceToSoldier() > hugStopDistance && t < 3f)
-        {
-            cam.SetFocus(face);
-            Stress = Mathf.MoveTowards(Stress, 0f, Time.deltaTime);
-            UpdateEffects();
-            t += Time.deltaTime;
-            yield return null;
-        }
-
-        input.ScriptedMove = null;
-        input.ScriptedSprint = false;
-        input.LookLocked = false;
-        SetSlowWalk(false);
-        onHug.Invoke();
-
-        // Sarılma anında konuşma yok: ekran kararır, kapanış sonraki sahnede
+        // Sarılma anında konuşma yok. Ekran koşarken kararmaya başlar, varınca simsiyah olur;
+        // askerin suratına bakıp beklemeyelim. Kapanış sonraki sahnede.
         Subtitles.Clear();
         if (uiGroup != null) uiGroup.alpha = 0f;
         if (heartSource != null) heartSource.Stop();
-
         ScreenFader.Instance.TransitionToScene(nextSceneIndex, fadeOutTime, fadeInTime, null, 1f, blackTime);
+
+        // Yaklaştıkça bakış yüzden göğsüne iner (çocuk yüzünü askere gömer)
+        Vector3 chest = face - Vector3.up * 0.5f;
+        float startDistance = Mathf.Max(DistanceToSoldier(), hugStopDistance + 0.01f);
+        bool hugged = false;
+
+        float t = 0f;
+        while (t < fadeOutTime + blackTime)
+        {
+            float d = DistanceToSoldier();
+            float k = Mathf.InverseLerp(startDistance, hugStopDistance, d);
+            cam.SetFocus(Vector3.Lerp(face, chest, k));
+            Stress = Mathf.MoveTowards(Stress, 0f, Time.deltaTime);
+            UpdateEffects();
+
+            if (!hugged && (d <= hugStopDistance || t >= 3f))
+            {
+                hugged = true;
+                input.ScriptedMove = Vector2.zero;
+                input.ScriptedSprint = false;
+                onHug.Invoke();
+            }
+            t += Time.deltaTime;
+            yield return null;
+        }
     }
 
     private void SpawnBehindPlayer()

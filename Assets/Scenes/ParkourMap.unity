@@ -1940,6 +1940,18 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 8300000, guid: eb5aea018d5379839bf98b36d89874e3, type: 3}
     - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.g
+      value: 0.013710939
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.r
+      value: 0.4811321
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
       propertyPath: lampIdleIntensity
       value: 0.5
       objectReference: {fileID: 0}
@@ -3210,6 +3222,34 @@ PrefabInstance:
       propertyPath: playerVault
       value: 
       objectReference: {fileID: 337387092}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: landSounds.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: 'landSounds.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 63ca6996ef76a8f468b08ec283cd4e48, type: 3}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: footstepSounds.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: 'footstepSounds.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 63ca6996ef76a8f468b08ec283cd4e48, type: 3}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: 'footstepSounds.Array.data[1]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 174c264a0af95c84786db072a14dbcec, type: 3}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: 'footstepSounds.Array.data[2]'
+      value: 
+      objectReference: {fileID: 8300000, guid: e0d1c18185723f4418a473d86e5766a4, type: 3}
+    - target: {fileID: 1741500559295688681, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
+      propertyPath: 'footstepSounds.Array.data[3]'
+      value: 
+      objectReference: {fileID: 8300000, guid: a47694e312c432d4c90c852764195ee1, type: 3}
     - target: {fileID: 4498206999373606646, guid: ecd6c0db0f72ffb54a6e02e9499e5960, type: 3}
       propertyPath: m_Name
       value: Player
@@ -4267,10 +4307,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SceneTransitionTrigger
   nextSceneIndex: -1
   fadeOutTime: 1.5
-  blackTime: 3
+  delayBeforeSound: 1
   fadeInTime: 2
-  explosionSound: {fileID: 8300000, guid: b1510802c028bb29cbef183598fbc5a1, type: 3}
+  explosionSound: {fileID: 8300000, guid: e7509bfc07e46484ca108f0263f70453, type: 3}
   explosionVolume: 1
+  silenceOtherSounds: 1
+  cinematicEntry: 1
+  walkSpeed: 0.4
 --- !u!1001 &302048550
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9734,6 +9777,7 @@ MonoBehaviour:
   - voice: {fileID: 11400000, guid: 6a11ba42c744cf04691e3efd22e7a8e8, type: 2}
     text: "Oh, Hay\u0131r!"
     holdTime: 0
+    speedMultiplier: 1
   waitForSubtitles: 1
   runDuration: 1.5
   onFinished:
@@ -16929,6 +16973,18 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 0}
     - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.g
+      value: 0.009827043
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.r
+      value: 0.4716981
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
       propertyPath: lampIdleIntensity
       value: 0.5
       objectReference: {fileID: 0}
@@ -20608,6 +20664,18 @@ PrefabInstance:
     - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
       propertyPath: sirenSound
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.g
+      value: 0.009245284
+      objectReference: {fileID: 0}
+    - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
+      propertyPath: primaryColor.r
+      value: 0.46226418
       objectReference: {fileID: 0}
     - target: {fileID: 1254801255416096010, guid: f9edf9a58c5c6bf608816893f6c3b31e, type: 3}
       propertyPath: lampIdleIntensity

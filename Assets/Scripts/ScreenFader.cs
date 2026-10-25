@@ -68,6 +68,8 @@ public class ScreenFader : MonoBehaviour
         audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
         audioSource.spatialBlend = 0f;
+        // Dünya susturulduğunda (AudioListener.pause) perdenin sesi yine çalsın
+        audioSource.ignoreListenerPause = true;
     }
 
     void OnDestroy()
@@ -77,12 +79,13 @@ public class ScreenFader : MonoBehaviour
     }
 
     // Ekranı karart, karanlıkta sesi çal ve bekle, sonraki sahneyi yükle, orada ekranı aç.
-    // buildIndex: File > Build Profiles > Scene List'teki sıra; NextScene (-1) şu anki sahneden sonrakini yükler.
+    // buildIndex: File > Build Profiles > Scene List'teki sıra; NextScene (-1) şu anki sahneden sonrakini yükler,
+    // son sahnedeysek en baştaki sahneye (ana menü) döner.
     public void TransitionToScene(int buildIndex, float fadeOutTime, float fadeInTime, AudioClip sound = null, float soundVolume = 1f, float blackTime = 0f)
     {
         if (IsTransitioning) return;
         if (buildIndex < 0)
-            buildIndex = SceneManager.GetActiveScene().buildIndex + 1;
+            buildIndex = (SceneManager.GetActiveScene().buildIndex + 1) % SceneManager.sceneCountInBuildSettings;
         StartCoroutine(TransitionRoutine(buildIndex, fadeOutTime, fadeInTime, sound, soundVolume, blackTime));
     }
 
@@ -95,6 +98,44 @@ public class ScreenFader : MonoBehaviour
             audioSource.PlayOneShot(sound, soundVolume);
         yield return new WaitForSecondsRealtime(blackTime);
 
+        yield return LoadAndReveal(buildIndex, fadeInTime);
+    }
+
+    // Ekranı karart, karanlıkta biraz bekle, sesi çal ve ses BİTİNCE sonraki sahneyi yükle.
+    // silenceWorld: ekran kararınca siren, müzik, adım sesi vb. her şey susar, sadece bu ses duyulur.
+    public void TransitionAfterSound(int buildIndex, float fadeOutTime, float delayBeforeSound, AudioClip sound, float soundVolume, float fadeInTime, bool silenceWorld = false)
+    {
+        if (IsTransitioning) return;
+        if (buildIndex < 0)
+            buildIndex = (SceneManager.GetActiveScene().buildIndex + 1) % SceneManager.sceneCountInBuildSettings;
+        StartCoroutine(AfterSoundRoutine(buildIndex, fadeOutTime, delayBeforeSound, sound, soundVolume, fadeInTime, silenceWorld));
+    }
+
+    private IEnumerator AfterSoundRoutine(int buildIndex, float fadeOutTime, float delayBeforeSound, AudioClip sound, float soundVolume, float fadeInTime, bool silenceWorld)
+    {
+        IsTransitioning = true;
+        yield return Fade(1f, fadeOutTime);
+
+        if (silenceWorld)
+        {
+            // Sahnedeki sesler duraklar (yeni sahneyle birlikte silinir), kalıcı müzik tamamen kesilir
+            AudioListener.pause = true;
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.StopAll();
+        }
+        yield return new WaitForSecondsRealtime(delayBeforeSound);
+
+        if (sound != null)
+        {
+            audioSource.PlayOneShot(sound, soundVolume);
+            yield return new WaitForSecondsRealtime(sound.length);
+        }
+
+        yield return LoadAndReveal(buildIndex, fadeInTime);
+    }
+
+    private IEnumerator LoadAndReveal(int buildIndex, float fadeInTime)
+    {
         if (buildIndex < 0 || buildIndex >= SceneManager.sceneCountInBuildSettings)
         {
             Debug.LogError($"ScreenFader: build listesinde {buildIndex} numaralı sahne yok ({SceneManager.sceneCountInBuildSettings} sahne var). File > Build Profiles > Scene List'e bak.");
@@ -104,6 +145,7 @@ public class ScreenFader : MonoBehaviour
         }
 
         yield return SceneManager.LoadSceneAsync(buildIndex);
+        AudioListener.pause = false;
         yield return new WaitForSecondsRealtime(settleTimeAfterLoad);
         yield return Fade(0f, fadeInTime);
         IsTransitioning = false;

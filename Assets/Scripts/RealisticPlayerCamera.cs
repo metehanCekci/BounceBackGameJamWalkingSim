@@ -179,6 +179,13 @@ public class RealisticPlayerCamera : MonoBehaviour
         }
     }
 
+    // Sahne kapanınca (ör. ana menüye dönüş) fare serbest kalsın, menü butonlarına tıklanabilsin
+    void OnDestroy()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
     void LateUpdate()
     {
         if (inputManager == null || playerBody == null || playerRb == null || playerMovement == null) return;

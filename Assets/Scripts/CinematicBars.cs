@@ -38,6 +38,16 @@ public class CinematicBars : MonoBehaviour
         instance.Apply();
     }
 
+    // Bantların varacağı yükseklik (ekran oranı). Altyazı kutusu kayma bitmeden yerini buna göre alır.
+    public static float TargetHeight
+    {
+        get
+        {
+            if (instance == null) return 0f;
+            return BarHeight * (instance.requests > 0 ? 1f : instance.baseLevel);
+        }
+    }
+
     public static void Show()
     {
         if (instance != null)

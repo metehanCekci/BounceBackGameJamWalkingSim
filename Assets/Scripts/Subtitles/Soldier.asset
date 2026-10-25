@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SubtitleVoice
   speakerName: 
   nameColor: {r: 1, g: 1, b: 1, a: 1}
-  textColor: {r: 0.3301887, g: 0, b: 0, a: 1}
+  textColor: {r: 1, g: 0, b: 0, a: 1}
   blipSounds: []
   blipStyle: 2
   pitch: 1

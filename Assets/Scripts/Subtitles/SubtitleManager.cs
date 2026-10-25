@@ -19,6 +19,10 @@ public class SubtitleManager : MonoBehaviour
     public float topMargin = 40f;
     public float boxWidth = 1100f;           // Yükseklik yazıya göre otomatik ayarlanır
 
+    [Header("Sinematik Bantlar")]
+    public float barBoxWidth = 1700f;        // Bantlar açıkken kutu genişler, yazı daha az satıra kayar
+    public int minBarFontSize = 26;          // Yazı üst banta sığmazsa bu boyuta kadar küçülür
+
     [Header("Yazma Hızı")]
     public float charactersPerSecond = 30f;
     public float commaPause = 0.12f;
@@ -27,8 +31,8 @@ public class SubtitleManager : MonoBehaviour
     [Range(0.5f, 1f)] public float dramaticPitch = 0.88f;  // Dramatik satırlarda bip sesi biraz pesleşir
 
     [Header("Ekranda Kalma")]
-    public float holdTimeBase = 1.5f;
-    public float holdTimePerChar = 0.04f;
+    public float holdTimeBase = 0.5f;      // Yazı bitince sonraki satıra geçmeden önce bekleme
+    public float holdTimePerChar = 0f;     // Uzun satırlara eklenen ek bekleme (harf başına)
     public float fadeDuration = 0.2f;
 
     [Header("Ses")]
@@ -54,7 +58,13 @@ public class SubtitleManager : MonoBehaviour
     private Text speakerText;
     private Text bodyText;
     private RectTransform boxRect;
+    private RectTransform canvasRect;
+    private VerticalLayoutGroup layout;
+    private LayoutElement bodyMinHeight;
     private AudioSource audioSource;
+
+    private string fullText = string.Empty;  // Yazılmakta olan satırın tamamı (kutu buna göre ölçülür)
+    private float fittedBar = -1f;
 
     void Awake()
     {
@@ -88,6 +98,64 @@ public class SubtitleManager : MonoBehaviour
         if (!allowSkip || !IsPlaying || skipKey == Key.None || Keyboard.current == null) return;
         if (Keyboard.current[skipKey].wasPressedThisFrame)
             skipRequested = true;
+    }
+
+    void LateUpdate()
+    {
+        // Bantlar açılıp kapanınca kutu yeni yerine geçsin
+        if (!Mathf.Approximately(BarUnits(), fittedBar))
+            FitToBars();
+    }
+
+    // Üst bandın varacağı yükseklik, canvas biriminde
+    private float BarUnits()
+    {
+        float canvasHeight = canvasRect.rect.height > 0f ? canvasRect.rect.height : 1080f;
+        return CinematicBars.TargetHeight * canvasHeight;
+    }
+
+    // Bantlar açıkken kutu üst bandın içinde ortalanır; satırın tamamı banta sığana kadar yazı küçülür.
+    // Satırın tamamına göre ölçülür ki yazı ikinci satıra geçince kutu bandın altına taşmasın.
+    private void FitToBars()
+    {
+        float bar = BarUnits();
+        fittedBar = bar;
+        bool inBars = bar > 1f;
+
+        float canvasWidth = canvasRect.rect.width > 0f ? canvasRect.rect.width : 1920f;
+        float width = inBars ? Mathf.Min(barBoxWidth, canvasWidth - 80f) : boxWidth;
+        boxRect.sizeDelta = new Vector2(width, 0f);
+        layout.padding = inBars ? new RectOffset(32, 32, 8, 8) : new RectOffset(32, 32, 18, 18);
+
+        int size = fontSize;
+        float height = MeasureBox(size, width);
+        if (inBars)
+        {
+            while (height > bar && size > minBarFontSize)
+            {
+                size -= 2;
+                height = MeasureBox(size, width);
+            }
+        }
+        bodyText.fontSize = size;
+        bodyMinHeight.minHeight = size * 1.3f;
+
+        float y = inBars ? Mathf.Max(0f, (bar - height) * 0.5f) : topMargin;
+        boxRect.anchoredPosition = new Vector2(0f, -y);
+        RefreshLayout();
+    }
+
+    // Kutunun satırın tamamı yazıldığında alacağı yükseklik
+    private float MeasureBox(int size, float width)
+    {
+        TextGenerationSettings settings = bodyText.GetGenerationSettings(new Vector2(width - layout.padding.horizontal, 0f));
+        settings.fontSize = size;
+        float textHeight = bodyText.cachedTextGeneratorForLayout.GetPreferredHeight(fullText, settings) / bodyText.pixelsPerUnit;
+
+        float height = Mathf.Max(size * 1.3f, textHeight) + layout.padding.vertical;
+        if (speakerText.gameObject.activeSelf)
+            height += speakerText.preferredHeight + layout.spacing;
+        return height;
     }
 
     public void Enqueue(SubtitleLine line)
@@ -166,7 +234,8 @@ public class SubtitleManager : MonoBehaviour
             speakerText.color = voice.nameColor;
         }
         bodyText.color = voice != null ? voice.textColor : Color.white;
-        RefreshLayout();
+        fullText = text;
+        FitToBars();
 
         float speed = charactersPerSecond * (voice != null ? voice.speedMultiplier : 1f) * lineSpeed;
         int blipEvery = voice != null ? voice.blipEvery : 2;
@@ -285,6 +354,7 @@ public class SubtitleManager : MonoBehaviour
         Canvas canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 100;
+        canvasRect = (RectTransform)transform;
 
         CanvasScaler scaler = gameObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -305,7 +375,7 @@ public class SubtitleManager : MonoBehaviour
         box.gameObject.AddComponent<Image>().color = boxColor;
         boxRect = box;
 
-        VerticalLayoutGroup layout = box.gameObject.AddComponent<VerticalLayoutGroup>();
+        layout = box.gameObject.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(32, 32, 18, 18);
         layout.spacing = 4f;
         layout.childAlignment = TextAnchor.UpperCenter;
@@ -325,7 +395,8 @@ public class SubtitleManager : MonoBehaviour
         speakerText.gameObject.SetActive(false);
 
         // Yazı boşken kutu çökmesin diye en az bir satır yüksekliği
-        bodyText.gameObject.AddComponent<LayoutElement>().minHeight = fontSize * 1.3f;
+        bodyMinHeight = bodyText.gameObject.AddComponent<LayoutElement>();
+        bodyMinHeight.minHeight = fontSize * 1.3f;
     }
 
     private Text CreateText(string name, Transform parent, int size, FontStyle style)

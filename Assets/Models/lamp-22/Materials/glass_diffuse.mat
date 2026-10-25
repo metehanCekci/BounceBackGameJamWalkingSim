@@ -29,7 +29,9 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _BENTNORMALMAP
+  - _DETAIL_MAP
   - _DISABLE_SSR_TRANSPARENT
+  - _EMISSIVE_COLOR_MAP
   - _MASKMAP
   - _MATERIAL_FEATURE_CLEAR_COAT
   - _NORMALMAP
@@ -71,11 +73,11 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: c5287d228c0f01f439bd031835e3dee0, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _EmissiveColorMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 0b896b09edca8e8539e050f56ccbd783, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _HeightMap:
