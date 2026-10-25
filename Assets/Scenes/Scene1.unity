@@ -5832,7 +5832,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: text
-      value: "Burda hi\xE7 kalmam\u0131\u015F, aramaya devam."
+      value: "Burada hi\xE7 kalmam\u0131\u015F, aramaya devam."
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: group
@@ -8275,7 +8275,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: text
-      value: "Burda hi\xE7 kalmam\u0131\u015F, aramaya devam."
+      value: "Burada hi\xE7 kalmam\u0131\u015F, aramaya devam."
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: group
@@ -9709,7 +9709,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: text
-      value: "Burda hi\xE7 kalmam\u0131\u015F, aramaya devam."
+      value: "Burada hi\xE7 kalmam\u0131\u015F, aramaya devam."
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: group
@@ -10615,6 +10615,7 @@ MonoBehaviour:
   - voice: {fileID: 11400000, guid: 6a11ba42c744cf04691e3efd22e7a8e8, type: 2}
     text: "\xC7ok ac\u0131kt\u0131m. Belkide erzak torbalar\u0131nda bir\u015Feyler kalm\u0131\u015Ft\u0131r. Bir \u015Fans\u0131m\u0131 deneyeyim."
     holdTime: 1
+    speedMultiplier: 1
   delayBeforeLines: 1.5
   walkAfterLines: 0.5
   onFinished:
@@ -11654,7 +11655,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: text
-      value: "Burda hi\xE7 kalmam\u0131\u015F, aramaya devam."
+      value: "Burada hi\xE7 kalmam\u0131\u015F, aramaya devam."
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: group
@@ -15081,6 +15082,7 @@ MonoBehaviour:
   - voice: {fileID: 11400000, guid: 6a11ba42c744cf04691e3efd22e7a8e8, type: 2}
     text: "Daha yeni geldim. \xD6nce yiyecek bir\u015Feyler bulmal\u0131y\u0131m."
     holdTime: 0.5
+    speedMultiplier: 1
   returnPoint: {fileID: 0}
   pauseTime: 0.6
   pushDistance: 2.5
@@ -16959,9 +16961,11 @@ MonoBehaviour:
   - voice: {fileID: 11400000, guid: 6a11ba42c744cf04691e3efd22e7a8e8, type: 2}
     text: "Bir ba\u015Fkas\u0131 daha,"
     holdTime: 1
+    speedMultiplier: 1
   - voice: {fileID: 11400000, guid: 5d6f8f6c0fd676c45a5a3c31534e6c16, type: 2}
     text: "Ayn\u0131 babam gibi..."
     holdTime: 2
+    speedMultiplier: 1
   waitForSubtitles: 1
   playOnce: 1
   onFinished:
@@ -24145,7 +24149,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: text
-      value: "Burda hi\xE7 kalmam\u0131\u015F, aramaya devam."
+      value: "Burada hi\xE7 kalmam\u0131\u015F, aramaya devam."
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: group
@@ -24497,7 +24501,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: text
-      value: "Burda hi\xE7 kalmam\u0131\u015F, aramaya devam."
+      value: "Burada hi\xE7 kalmam\u0131\u015F, aramaya devam."
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: group
@@ -25794,7 +25798,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: text
-      value: "Burda hi\xE7 kalmam\u0131\u015F, aramaya devam."
+      value: "Burada hi\xE7 kalmam\u0131\u015F, aramaya devam."
       objectReference: {fileID: 0}
     - target: {fileID: 2936444494884504175, guid: 5e47211d77d05db4182e2f16fd0f14c1, type: 3}
       propertyPath: group
