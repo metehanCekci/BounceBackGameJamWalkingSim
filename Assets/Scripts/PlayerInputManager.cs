@@ -8,9 +8,13 @@ public class PlayerInputManager : MonoBehaviour
     // Doluysa karakter oyuncu yerine bu girişle yürür (cutscene'lerde otomatik yürüme)
     public Vector2? ScriptedMove { get; set; }
     public Vector2 MoveInput => ScriptedMove ?? (InputLocked ? Vector2.zero : rawMove);
-    public Vector2 LookInput => InputLocked ? Vector2.zero : rawLook;
+    // Sadece fareyi kilitler, yürümek serbest kalır (ör. kamera bir şeye kilitliyken)
+    public bool LookLocked { get; set; }
+    public Vector2 LookInput => (InputLocked || LookLocked) ? Vector2.zero : rawLook;
     public bool IsGamepad { get; private set; }
     public bool IsCrouching { get; private set; }
+    // Açıkken eğilme tuşu yok sayılır (ör. sadece yürüme ve koşmanın olduğu bölümler)
+    public bool CrouchLocked { get; set; }
     // Doluysa karakter cutscene'de koşar
     public bool ScriptedSprint { get; set; }
     public bool IsSprinting => ScriptedSprint || (!InputLocked && rawSprint);
@@ -81,7 +85,7 @@ public class PlayerInputManager : MonoBehaviour
     {
         rawMove = moveAction.ReadValue<Vector2>();
         rawLook = lookAction.ReadValue<Vector2>();
-        IsCrouching = crouchAction.IsPressed();
+        IsCrouching = !CrouchLocked && crouchAction.IsPressed();
         rawSprint = sprintAction.IsPressed();
         // FixedUpdate okuyana kadar basışı tut, yüksek FPS'te kaybolmasın
         if (jumpAction.WasPressedThisFrame() && !InputLocked)

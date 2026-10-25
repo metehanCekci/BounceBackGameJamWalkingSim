@@ -69,6 +69,9 @@ public class EscapeCollapseCutscene : MonoBehaviour
     {
         triggered = true;
 
+        // Önceki konuşmalar bu sahnenin üstüne akmasın
+        Subtitles.Clear();
+
         PlayerInputManager input = player.inputManager;
         Rigidbody rb = player.GetComponent<Rigidbody>();
         RealisticPlayerCamera cam = FindAnyObjectByType<RealisticPlayerCamera>();
@@ -213,6 +216,8 @@ public class EscapeCollapseCutscene : MonoBehaviour
             input.ScriptedMove = null;
             input.ScriptedSprint = false;
         }
+
+        Subtitles.Clear();
 
         // Karanlıkta: yeni yere ışınla, yerde sırtüstü yatar halde başla
         float wakeYaw = wakeUpPoint.eulerAngles.y;
