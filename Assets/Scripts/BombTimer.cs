@@ -12,6 +12,9 @@ public class BombTimer : MonoBehaviour
     public float fadeInTime = 0.35f;             // Başa dönünce ekranın açılma süresi
     public Transform spawnPoint;                 // Boşsa oyuncunun sahne başındaki yeri kullanılır
     public bool reloadScene = false;             // Sahnede sıfırlanması gereken şeyler varsa aç (yükleme kadar sürer)
+    public bool startRunning = true;             // Kapalıysa sayaç StartTimer() çağrılana kadar beklemede (ör. siren cutscene'i)
+
+    public bool IsRunning { get; private set; }
 
     public float TimeLeft { get; private set; }  // Ekranda geri sayım göstermek istersen buradan oku
 
@@ -32,12 +35,20 @@ public class BombTimer : MonoBehaviour
             // Oyuncu sadece sağa sola döner, eğik bir spawn noktası onu yatırmasın
             startRotation = Quaternion.Euler(0f, start.eulerAngles.y, 0f);
         }
+
+        IsRunning = startRunning;
+    }
+
+    public void StartTimer()
+    {
+        TimeLeft = timeLimit;
+        IsRunning = true;
     }
 
     void Update()
     {
         // Bunker geçişi ya da önceki patlama sürerken saymayız
-        if (exploding || ScreenFader.IsBusy) return;
+        if (!IsRunning || exploding || ScreenFader.IsBusy) return;
 
         TimeLeft -= Time.deltaTime;
         if (TimeLeft > 0f) return;
