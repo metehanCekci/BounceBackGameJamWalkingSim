@@ -181,7 +181,9 @@ public class PlayerMovement : MonoBehaviour
             jumpGroundIgnoreTimer -= Time.fixedDeltaTime;
             isGrounded = false;
         }
-        else if (Physics.BoxCast(bounds.center, boxHalfExtents, Vector3.down, out slopeHit, transform.rotation, castDistance))
+        // Trigger'lar (görev alanları, tünel Volume'u) zemin sayılmasın, üstlerinde havada durmayalım
+        else if (Physics.BoxCast(bounds.center, boxHalfExtents, Vector3.down, out slopeHit, transform.rotation, castDistance,
+                     Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
         {
             float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
             isGrounded = angle < maxSlopeAngle;
