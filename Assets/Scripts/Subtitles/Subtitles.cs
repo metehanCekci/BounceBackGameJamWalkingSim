@@ -7,14 +7,17 @@ public class SubtitleLine
     public SubtitleVoice voice;              // Boşsa yöneticideki varsayılan konuşmacı
     [TextArea(2, 4)] public string text;
     public float holdTime = 0f;              // Yazı bittikten sonra ekranda kalma süresi (0 = otomatik)
+    [Tooltip("Yazılma hızı çarpanı. 1 = normal, 0.4 = dramatik yavaş. Metnin başına ~ koymak da yavaşlatır.")]
+    public float speedMultiplier = 1f;
 
     public SubtitleLine() { }
 
-    public SubtitleLine(string text, SubtitleVoice voice = null, float holdTime = 0f)
+    public SubtitleLine(string text, SubtitleVoice voice = null, float holdTime = 0f, float speedMultiplier = 1f)
     {
         this.text = text;
         this.voice = voice;
         this.holdTime = holdTime;
+        this.speedMultiplier = speedMultiplier;
     }
 }
 

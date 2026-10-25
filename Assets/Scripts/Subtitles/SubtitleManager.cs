@@ -23,6 +23,8 @@ public class SubtitleManager : MonoBehaviour
     public float charactersPerSecond = 30f;
     public float commaPause = 0.12f;
     public float sentencePause = 0.35f;
+    [Range(0.1f, 1f)] public float dramaticSpeed = 0.6f;   // Başında ~ olan satırların hızı (Celeste gibi yavaş)
+    [Range(0.5f, 1f)] public float dramaticPitch = 0.88f;  // Dramatik satırlarda bip sesi biraz pesleşir
 
     [Header("Ekranda Kalma")]
     public float holdTimeBase = 1.5f;
@@ -46,6 +48,7 @@ public class SubtitleManager : MonoBehaviour
     private readonly Dictionary<BlipStyle, AudioClip> blipClips = new Dictionary<BlipStyle, AudioClip>();
     private Coroutine runner;
     private bool skipRequested;
+    private float blipPitchMultiplier = 1f;
 
     private CanvasGroup canvasGroup;
     private Text speakerText;
@@ -145,6 +148,16 @@ public class SubtitleManager : MonoBehaviour
         SubtitleVoice voice = line.voice != null ? line.voice : defaultVoice;
         string text = line.text;
 
+        // "~" ile başlayan satırlar dramatik: harfler ve sesler çok daha yavaş, biraz daha pes gelir
+        float lineSpeed = line.speedMultiplier > 0f ? line.speedMultiplier : 1f;
+        blipPitchMultiplier = 1f;
+        if (text.StartsWith("~"))
+        {
+            text = text.Substring(1).TrimStart();
+            lineSpeed *= dramaticSpeed;
+            blipPitchMultiplier = dramaticPitch;
+        }
+
         bool hasName = voice != null && !string.IsNullOrEmpty(voice.speakerName);
         speakerText.gameObject.SetActive(hasName);
         if (hasName)
@@ -155,7 +168,7 @@ public class SubtitleManager : MonoBehaviour
         bodyText.color = voice != null ? voice.textColor : Color.white;
         RefreshLayout();
 
-        float speed = charactersPerSecond * (voice != null ? voice.speedMultiplier : 1f);
+        float speed = charactersPerSecond * (voice != null ? voice.speedMultiplier : 1f) * lineSpeed;
         int blipEvery = voice != null ? voice.blipEvery : 2;
         int letterCount = 0;
         skipRequested = false;
@@ -239,7 +252,7 @@ public class SubtitleManager : MonoBehaviour
 
         // Öncekini kes, sesler üst üste binip çamurlaşmasın
         audioSource.Stop();
-        audioSource.pitch = pitch + Random.Range(-variation, variation);
+        audioSource.pitch = (pitch + Random.Range(-variation, variation)) * blipPitchMultiplier;
         audioSource.PlayOneShot(clip, blipVolume * volume);
     }
 

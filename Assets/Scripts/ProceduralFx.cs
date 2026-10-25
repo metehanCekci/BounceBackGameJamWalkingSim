@@ -73,6 +73,29 @@ public static class ProceduralFx
         return CreateClip("Impact", data);
     }
 
+    // Tek bir "güm-güm" kalp atışı (döngüde çalınır, pitch artınca hızlanır)
+    public static AudioClip Heartbeat()
+    {
+        const float seconds = 0.9f;
+        int length = Mathf.RoundToInt(SampleRate * seconds);
+        float[] data = new float[length];
+
+        for (int i = 0; i < length; i++)
+        {
+            float t = i / (float)SampleRate;
+            data[i] = Thump(t, 0f, 1f) + Thump(t, 0.26f, 0.65f);
+        }
+        return CreateClip("Heartbeat", data);
+    }
+
+    private static float Thump(float t, float start, float strength)
+    {
+        float local = t - start;
+        if (local < 0f) return 0f;
+        float freq = Mathf.Lerp(65f, 40f, Mathf.Clamp01(local / 0.12f));
+        return Mathf.Sin(local * freq * Mathf.PI * 2f) * Mathf.Exp(-local * 22f) * strength;
+    }
+
     // Kısmen 3B çalar: yönü duyulur ama uzaktan da güçlü gelir
     public static void PlayClip(AudioClip clip, Vector3 position, float volume)
     {
