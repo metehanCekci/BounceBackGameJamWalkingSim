@@ -77,12 +77,13 @@ public class ScreenFader : MonoBehaviour
     }
 
     // Ekranı karart, karanlıkta sesi çal ve bekle, sonraki sahneyi yükle, orada ekranı aç.
-    // buildIndex: File > Build Profiles > Scene List'teki sıra; NextScene (-1) şu anki sahneden sonrakini yükler.
+    // buildIndex: File > Build Profiles > Scene List'teki sıra; NextScene (-1) şu anki sahneden sonrakini yükler,
+    // son sahnedeysek en baştaki sahneye (ana menü) döner.
     public void TransitionToScene(int buildIndex, float fadeOutTime, float fadeInTime, AudioClip sound = null, float soundVolume = 1f, float blackTime = 0f)
     {
         if (IsTransitioning) return;
         if (buildIndex < 0)
-            buildIndex = SceneManager.GetActiveScene().buildIndex + 1;
+            buildIndex = (SceneManager.GetActiveScene().buildIndex + 1) % SceneManager.sceneCountInBuildSettings;
         StartCoroutine(TransitionRoutine(buildIndex, fadeOutTime, fadeInTime, sound, soundVolume, blackTime));
     }
 
